@@ -4,7 +4,10 @@ import {
     firstLetterUppercase,
     lowerCase
 } from "@Akihira77/jobber-shared";
-import { JWT_TOKEN } from "@auth/config";
+import {
+    JWT_TOKEN,
+    buyerServiceExchangeNamesAndRoutingKeys
+} from "@auth/config";
 import { AuthModel } from "@auth/models/auth.model";
 import { publishDirectMessage } from "@auth/queues/auth.producer";
 import { authChannel } from "@auth/server";
@@ -25,12 +28,14 @@ export async function createAuthUser(
         type: "auth"
     };
 
+    const { exchangeName, routingKey } =
+        buyerServiceExchangeNamesAndRoutingKeys.buyer;
     await publishDirectMessage(
         authChannel,
-        "jobber-buyer-update",
-        "user-buyer",
+        exchangeName,
+        routingKey,
         JSON.stringify(messageDetails),
-        "buyer details sent to buyer service."
+        "Buyer details sent to buyer service."
     );
 
     const userData = omit(result.dataValues, ["password"]) as IAuthDocument;

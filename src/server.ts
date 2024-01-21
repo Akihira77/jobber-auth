@@ -22,7 +22,7 @@ import {
 import hpp from "hpp";
 import helmet from "helmet";
 import cors from "cors";
-import { checkConnection } from "@auth/elasticsearch";
+import { checkConnection, createIndex } from "@auth/elasticsearch";
 import { appRoutes } from "@auth/routes";
 import { Channel } from "amqplib";
 import { createConnection } from "@auth/queues/connection";
@@ -60,7 +60,7 @@ function securityMiddleware(app: Application): void {
     );
 
     app.use((req: Request, _res: Response, next: NextFunction) => {
-        console.log(req.headers);
+        // console.log(req.headers);
         if (req.headers.authorization) {
             const token = req.headers.authorization.split(" ")[1];
             const payload = jwt.verify(token, JWT_TOKEN!) as IAuthPayload;
@@ -87,6 +87,7 @@ async function startQueues(): Promise<void> {
 
 function startElasticSearch(): void {
     checkConnection();
+    createIndex("gigs");
 }
 
 function authErrorHandler(app: Application): void {

@@ -38,3 +38,10 @@ export const notificationServiceExchangeNamesAndRoutingKeys = {
         routingKey: "order-email"
     }
 };
+
+export const buyerServiceExchangeNamesAndRoutingKeys = {
+    buyer: {
+        exchangeName: "jobber-buyer-update",
+        routingKey: "user-buyer"
+    }
+};
