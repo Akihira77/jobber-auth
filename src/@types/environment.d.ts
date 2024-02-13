@@ -3,6 +3,7 @@ export {};
 declare global {
     namespace NodeJS {
         interface ProcessEnv {
+            PORT: string;
             ENABLE_APM: string;
             GATEWAY_JWT_TOKEN: string;
             JWT_TOKEN: string;

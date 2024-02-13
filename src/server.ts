@@ -10,7 +10,12 @@ import {
     winstonLogger
 } from "@Akihira77/jobber-shared";
 import { Logger } from "winston";
-import { API_GATEWAY_URL, ELASTIC_SEARCH_URL, JWT_TOKEN } from "@auth/config";
+import {
+    API_GATEWAY_URL,
+    ELASTIC_SEARCH_URL,
+    JWT_TOKEN,
+    PORT
+} from "@auth/config";
 import {
     Application,
     NextFunction,
@@ -26,8 +31,6 @@ import { checkConnection, createIndex } from "@auth/elasticsearch";
 import { appRoutes } from "@auth/routes";
 import { Channel } from "amqplib";
 import { createConnection } from "@auth/queues/connection";
-
-const PORT = 4002;
 
 const log: Logger = winstonLogger(
     `${ELASTIC_SEARCH_URL}`,
@@ -112,7 +115,7 @@ function startServer(app: Application): void {
     try {
         const httpServer: http.Server = new http.Server(app);
         log.info(`Authentication server has started with pid ${process.pid}`);
-        httpServer.listen(PORT, () => {
+        httpServer.listen(Number(PORT), () => {
             log.info(`Authentication server running on port ${PORT}`);
         });
     } catch (error) {

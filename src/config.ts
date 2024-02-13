@@ -8,6 +8,7 @@ if (process.env.NODE_ENV !== "production") {
 }
 
 export const {
+    PORT,
     CLIENT_URL,
     CLOUD_API_KEY,
     CLOUD_API_SECRET,
