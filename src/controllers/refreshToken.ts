@@ -3,10 +3,7 @@ import { getUserByUsername, signToken } from "@auth/services/auth.service";
 import { Request, Response } from "express";
 import { StatusCodes } from "http-status-codes";
 
-export async function refreshToken(
-    req: Request<{ username: string }, never, never, never>,
-    res: Response
-): Promise<void> {
+export async function refreshToken(req: Request, res: Response): Promise<void> {
     const existingUser: IAuthDocument = await getUserByUsername(
         req.params.username
     );

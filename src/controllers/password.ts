@@ -28,7 +28,7 @@ import { StatusCodes } from "http-status-codes";
 import { AuthModel } from "@auth/models/auth.model";
 
 export async function sendForgotPasswordLinkToEmailUser(
-    req: Request<never, never, { email: string }, never>,
+    req: Request,
     res: Response
 ): Promise<void> {
     const { error } = await Promise.resolve(emailSchema.validate(req.body));
@@ -80,12 +80,7 @@ export async function sendForgotPasswordLinkToEmailUser(
 }
 
 export async function resetPassword(
-    req: Request<
-        { token: string },
-        never,
-        { password: string; confirmPassword: string },
-        never
-    >,
+    req: Request,
     res: Response
 ): Promise<void> {
     const { error } = await Promise.resolve(passwordSchema.validate(req.body));
@@ -140,12 +135,7 @@ export async function resetPassword(
 }
 
 export async function changePassword(
-    req: Request<
-        { token: string },
-        never,
-        { currentPassword: string; newPassword: string },
-        never
-    >,
+    req: Request,
     res: Response
 ): Promise<void> {
     const { error } = await Promise.resolve(

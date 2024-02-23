@@ -15,7 +15,7 @@ import { StatusCodes } from "http-status-codes";
 import { omit } from "lodash";
 
 export async function signIn(
-    req: Request<never, never, { username: string; password: string }, never>,
+    req: Request,
     res: Response
 ): Promise<void> {
     const { error } = await Promise.resolve(signInSchema.validate(req.body));
