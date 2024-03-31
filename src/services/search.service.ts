@@ -3,10 +3,19 @@ import {
     IPaginateProps,
     IQueryList,
     ISearchResult,
-    ISellerGig
+    ISellerGig,
+    winstonLogger
 } from "@Akihira77/jobber-shared";
+import { ELASTIC_SEARCH_URL } from "@auth/config";
 import { elasticSearchClient, getDocumentById } from "@auth/elasticsearch";
 import { SearchResponse } from "@elastic/elasticsearch/lib/api/types";
+import { Logger } from "winston";
+
+const log: Logger = winstonLogger(
+    `${ELASTIC_SEARCH_URL}`,
+    "authServiceServer",
+    "debug"
+);
 
 export async function getGigById(
     index: string,
@@ -69,25 +78,30 @@ export async function gigsSearch(
         });
     }
 
-    const result: SearchResponse = await elasticSearchClient.search({
-        index: "gigs",
-        size,
-        query: {
-            bool: {
-                must: queryList
-            }
-        },
-        sort: [
-            {
-                sortId: type === "forward" ? "asc" : "desc"
-            }
-        ],
-        // startFrom for pagination
-        ...(from !== "0" && { search_after: [from] })
-    });
+    try {
+        const result: SearchResponse = await elasticSearchClient.search({
+            index: "gigs",
+            size,
+            query: {
+                bool: {
+                    must: queryList
+                }
+            },
+            sort: [
+                {
+                    sortId: type === "forward" ? "asc" : "desc"
+                }
+            ],
+            // startFrom for pagination
+            ...(from !== "0" && { search_after: [from] })
+        });
 
-    const total: IHitsTotal = result.hits.total as IHitsTotal;
-    const hits = result.hits.hits;
+        const total: IHitsTotal = result.hits.total as IHitsTotal;
+        const hits = result.hits.hits;
 
-    return { total: total.value, hits };
+        return { total: total.value, hits };
+    } catch (error) {
+        log.error("AuthService gigsSearch() method error:", error);
+        return { total: 0, hits: [] };
+    }
 }

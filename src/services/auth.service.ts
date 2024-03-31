@@ -136,13 +136,18 @@ export async function getAuthUserByPasswordToken(
 export async function updateVerifyEmail(
     id: number,
     emailVerified: number,
-    emailVerificationToken: string
+    emailVerificationToken?: string
 ): Promise<void> {
+    console.log(emailVerificationToken);
     await AuthModel.update(
-        {
-            emailVerified,
-            emailVerificationToken
-        },
+        !emailVerificationToken
+            ? {
+                  emailVerified
+              }
+            : {
+                  emailVerified,
+                  emailVerificationToken
+              },
         {
             where: { id }
         }

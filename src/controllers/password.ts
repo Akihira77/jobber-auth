@@ -93,14 +93,11 @@ export async function resetPassword(
     }
 
     const { password, confirmPassword } = req.body;
-    const { token } = req.params;
-
     if (password !== confirmPassword) {
-        throw new BadRequestError(
-            "Passwords not matched.",
-            "Password resetPassword() method error"
-        );
+        throw new BadRequestError("Passwords not match", "Password resetPassword() method error");
     }
+
+    const { token } = req.params;
 
     const existingUser: IAuthDocument = await getAuthUserByPasswordToken(token);
 
@@ -117,6 +114,7 @@ export async function resetPassword(
     // publish to 2-notification-service > consumeAuthEmailMessages
     const messageDetails: IEmailMessageDetails = {
         username: existingUser.username!,
+        receiverEmail: existingUser.email!,
         template: "resetPasswordSuccess"
     };
     const { exchangeName, routingKey } =
@@ -154,7 +152,7 @@ export async function changePassword(
     if (currentPassword === newPassword) {
         throw new BadRequestError(
             "Password cannot same as previous password.",
-            "Password resetPassword() method error"
+            "Password changePassword() method error"
         );
     }
 
@@ -162,12 +160,15 @@ export async function changePassword(
         req.currentUser!.username
     );
 
-    if (!existingUser) {
+    const isValidPassword: boolean = await AuthModel.prototype.comparePassword(currentPassword, existingUser.password ?? "");
+
+    if (!existingUser || !isValidPassword) {
         throw new BadRequestError(
             "Invalid password.",
             "Password resetPassword() method error"
-        );
-    }
+            );
+        }
+
 
     const hashedPassword = await AuthModel.prototype.hashPassword(newPassword);
     await updatePassword(existingUser.id!, hashedPassword);
@@ -175,6 +176,7 @@ export async function changePassword(
     // publish to 2-notification-service > consumeAuthEmailMessages
     const messageDetails: IEmailMessageDetails = {
         username: existingUser.username!,
+        receiverEmail: existingUser.email!,
         template: "resetPasswordSuccess"
     };
     const { exchangeName, routingKey } =
