@@ -14,11 +14,8 @@ import { Request, Response } from "express";
 import { StatusCodes } from "http-status-codes";
 import { omit } from "lodash";
 
-export async function signIn(
-    req: Request,
-    res: Response
-): Promise<void> {
-    const { error } = await Promise.resolve(signInSchema.validate(req.body));
+export async function signIn(req: Request, res: Response): Promise<void> {
+    const { error } = signInSchema.validate(req.body);
 
     if (error?.details) {
         throw new BadRequestError(
@@ -29,7 +26,7 @@ export async function signIn(
 
     const { username, password } = req.body;
     const isValidEmail = isEmail(username);
-    const existingUser: IAuthDocument = isValidEmail
+    const existingUser = isValidEmail
         ? await getUserByEmail(username)
         : await getUserByUsername(username);
 

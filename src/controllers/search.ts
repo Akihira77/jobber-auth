@@ -17,6 +17,7 @@ export async function gigsQuerySearch(
     };
     const { query, delivery_time, min, max } = req.query;
 
+    console.log(req.params)
     const gigs: ISearchResult = await gigsSearch(
         `${query}`,
         paginate,
@@ -33,6 +34,7 @@ export async function gigsQuerySearch(
         resultHits = sortBy(resultHits, ["sortId"]);
     }
 
+    console.log(resultHits)
     res.status(StatusCodes.OK).json({
         message: "Search gigs results",
         total: gigs.total,

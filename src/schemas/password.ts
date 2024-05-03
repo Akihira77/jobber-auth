@@ -23,15 +23,15 @@ export const passwordSchema: ObjectSchema = j.object().keys({
 
 export const changePasswordSchema: ObjectSchema = j.object().keys({
     currentPassword: j.string().required().min(4).max(12).messages({
-        "string.base": "Password should be of type string",
+        "string.base": "Current Password should be of type string",
         "string.min": "Invalid password",
         "string.max": "Invalid password",
-        "string.empty": "Password is a required field"
+        "string.empty": "Current Password is a required field"
     }),
     newPassword: j.string().required().min(4).max(12).messages({
-        "string.base": "Password should be of type string",
+        "string.base": "New Password should be of type string",
         "string.min": "Invalid password",
         "string.max": "Invalid password",
-        "string.empty": "Password is a required field"
+        "string.empty": "New Password is a required field"
     })
 });

@@ -1,16 +1,16 @@
-import { BadRequestError, IAuthDocument } from "@Akihira77/jobber-shared";
+import { NotFoundError } from "@Akihira77/jobber-shared";
 import { getUserByUsername, signToken } from "@auth/services/auth.service";
 import { Request, Response } from "express";
 import { StatusCodes } from "http-status-codes";
 
 export async function refreshToken(req: Request, res: Response): Promise<void> {
-    const existingUser: IAuthDocument = await getUserByUsername(
+    const existingUser = await getUserByUsername(
         req.params.username
     );
 
     if (!existingUser) {
-        throw new BadRequestError(
-            "Invalid password.",
+        throw new NotFoundError(
+            "User is not found.",
             "Password resetPassword() method error"
         );
     }

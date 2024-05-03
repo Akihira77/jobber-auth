@@ -1,10 +1,9 @@
 import crypto from "crypto";
 
 import {
-    BadRequestError,
-    IAuthDocument,
     IEmailMessageDetails,
-    lowerCase
+    lowerCase,
+    NotFoundError
 } from "@Akihira77/jobber-shared";
 import {
     getAuthUserById,
@@ -25,9 +24,14 @@ export async function getCurrentUser(
     res: Response
 ): Promise<void> {
     let user = null;
-    const existingUser: IAuthDocument = await getAuthUserById(
+    const existingUser = await getAuthUserById(
         req.currentUser!.id
     );
+
+    if (!existingUser) {
+        throw new NotFoundError("User is not found", "CurrentUser getCurrentUser() method error")
+    }
+
     if (Object.keys(existingUser).length) {
         user = existingUser;
     }
@@ -40,10 +44,10 @@ export async function resendVerificationEmail(
     res: Response
 ): Promise<void> {
     const { email } = req.body;
-    const checkIfUserExist: IAuthDocument = await getUserByEmail(email);
+    const checkIfUserExist = await getUserByEmail(email);
 
     if (!checkIfUserExist) {
-        throw new BadRequestError(
+        throw new NotFoundError(
             "Email is invalid",
             "currentUser resendVerificationEmail() method error"
         );
@@ -64,7 +68,7 @@ export async function resendVerificationEmail(
     // publish to 2-notification-service > consumeAuthEmailMessages
     const { exchangeName, routingKey } =
         notificationServiceExchangeNamesAndRoutingKeys.email;
-    await publishDirectMessage(
+    publishDirectMessage(
         authChannel,
         exchangeName,
         routingKey,

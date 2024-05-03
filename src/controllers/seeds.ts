@@ -33,7 +33,7 @@ export async function generate(req: Request, res: Response): Promise<void> {
         const country = faker.location.country();
         const profilePicture = faker.image.urlPicsumPhotos();
 
-        const checkIfUserExist: IAuthDocument = await getUserByUsernameOrEmail(
+        const checkIfUserExist = await getUserByUsernameOrEmail(
             username,
             email
         );

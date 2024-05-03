@@ -2,9 +2,11 @@ import {
     IAuthBuyerMessageDetails,
     IAuthDocument,
     firstLetterUppercase,
-    lowerCase
+    lowerCase,
+    winstonLogger
 } from "@Akihira77/jobber-shared";
 import {
+    ELASTIC_SEARCH_URL,
     JWT_TOKEN,
     buyerServiceExchangeNamesAndRoutingKeys
 } from "@auth/config";
@@ -14,42 +16,50 @@ import { authChannel } from "@auth/server";
 import { sign } from "jsonwebtoken";
 import { omit } from "lodash";
 import { Model, Op } from "sequelize";
+import { Logger } from "winston";
+
+const logger: Logger = winstonLogger(`${ELASTIC_SEARCH_URL}`, "authService", "debug")
 
 export async function createAuthUser(
     data: IAuthDocument
 ): Promise<IAuthDocument> {
-    const result: Model = await AuthModel.create(data);
-    const messageDetails: IAuthBuyerMessageDetails = {
-        username: result.dataValues.username!,
-        email: result.dataValues.email!,
-        country: result.dataValues.country!,
-        profilePicture: result.dataValues.profilePicture!,
-        createdAt: result.dataValues.createdAt!,
-        type: "auth"
-    };
+    try {
+        const result: Model = await AuthModel.create(data);
+        const messageDetails: IAuthBuyerMessageDetails = {
+            username: result.dataValues.username!,
+            email: result.dataValues.email!,
+            country: result.dataValues.country!,
+            profilePicture: result.dataValues.profilePicture!,
+            createdAt: result.dataValues.createdAt!,
+            type: "auth"
+        };
 
-    const { exchangeName, routingKey } =
-        buyerServiceExchangeNamesAndRoutingKeys.buyer;
-    await publishDirectMessage(
-        authChannel,
-        exchangeName,
-        routingKey,
-        JSON.stringify(messageDetails),
-        "Buyer details sent to buyer service."
-    );
+        const { buyer } =
+            buyerServiceExchangeNamesAndRoutingKeys;
+        await publishDirectMessage(
+            authChannel,
+            buyer.exchangeName,
+            buyer.routingKey,
+            JSON.stringify(messageDetails),
+            "Buyer details sent to users service (buyer)."
+        );
 
-    const userData = omit(result.dataValues, ["password"]) as IAuthDocument;
+        const userData = omit(result.dataValues, ["password"]) as IAuthDocument;
 
-    return userData;
+        return userData;
+    } catch (error) {
+        logger.error("AuthService createAuthUser() method error", error)
+        throw new Error("Unexpected error occured. Please try again.")
+    }
 }
 
-export async function getAuthUserById(id: number): Promise<IAuthDocument> {
+export async function getAuthUserById(id: number): Promise<IAuthDocument | undefined> {
     const user = (await AuthModel.findOne({
         where: { id },
         attributes: {
             exclude: ["password"]
         }
-    })) as Model<IAuthDocument>;
+    }));
 
     return user?.dataValues;
 }
@@ -57,7 +67,7 @@ export async function getAuthUserById(id: number): Promise<IAuthDocument> {
 export async function getUserByUsernameOrEmail(
     username: string,
     email: string
-): Promise<IAuthDocument> {
+): Promise<IAuthDocument | undefined> {
     const user = (await AuthModel.findOne({
         where: {
             [Op.or]: [
@@ -72,36 +82,36 @@ export async function getUserByUsernameOrEmail(
         attributes: {
             exclude: ["password"]
         }
-    })) as Model<IAuthDocument>;
+    }));
 
     return user?.dataValues;
 }
 
 export async function getUserByUsername(
     username: string
-): Promise<IAuthDocument> {
+): Promise<IAuthDocument | undefined> {
     const user = (await AuthModel.findOne({
         where: {
             username: firstLetterUppercase(username)
         }
-    })) as Model<IAuthDocument>;
+    }));
 
     return user?.dataValues;
 }
 
-export async function getUserByEmail(email: string): Promise<IAuthDocument> {
+export async function getUserByEmail(email: string): Promise<IAuthDocument | undefined> {
     const user = (await AuthModel.findOne({
         where: {
             email: lowerCase(email)
         }
-    })) as Model<IAuthDocument>;
+    }));
 
     return user?.dataValues;
 }
 
 export async function getAuthUserByVerificationToken(
     token: string
-): Promise<IAuthDocument> {
+): Promise<IAuthDocument | undefined> {
     const user = (await AuthModel.findOne({
         where: {
             emailVerificationToken: token
@@ -109,14 +119,14 @@ export async function getAuthUserByVerificationToken(
         attributes: {
             exclude: ["password"]
         }
-    })) as Model<IAuthDocument>;
+    }));
 
     return user?.dataValues;
 }
 
 export async function getAuthUserByPasswordToken(
     token: string
-): Promise<IAuthDocument> {
+): Promise<IAuthDocument | undefined> {
     const user = (await AuthModel.findOne({
         where: {
             [Op.or]: [
@@ -128,7 +138,7 @@ export async function getAuthUserByPasswordToken(
                 }
             ]
         }
-    })) as Model<IAuthDocument>;
+    }));
 
     return user?.dataValues;
 }
@@ -138,20 +148,24 @@ export async function updateVerifyEmail(
     emailVerified: number,
     emailVerificationToken?: string
 ): Promise<void> {
-    console.log(emailVerificationToken);
-    await AuthModel.update(
-        !emailVerificationToken
-            ? {
-                  emailVerified
-              }
-            : {
-                  emailVerified,
-                  emailVerificationToken
-              },
-        {
-            where: { id }
-        }
-    );
+    try {
+        await AuthModel.update(
+            !emailVerificationToken
+                ? {
+                    emailVerified
+                }
+                : {
+                    emailVerified,
+                    emailVerificationToken
+                },
+            {
+                where: { id }
+            }
+        );
+    } catch (error) {
+        logger.error("AuthService updateVerifyEmail() method error", error)
+        throw error
+    }
 }
 
 export async function updatePasswordToken(
@@ -159,31 +173,41 @@ export async function updatePasswordToken(
     token: string,
     tokenExpiration: Date
 ): Promise<void> {
-    await AuthModel.update(
-        {
-            passwordResetToken: token,
-            passwordResetExpires: tokenExpiration
-        },
-        {
-            where: { id }
-        }
-    );
+    try {
+        await AuthModel.update(
+            {
+                passwordResetToken: token,
+                passwordResetExpires: tokenExpiration
+            },
+            {
+                where: { id }
+            }
+        );
+
+    } catch (error) {
+        logger.error("AuthService updatePasswordToken() method error", error)
+    }
 }
 
 export async function updatePassword(
     id: number,
     password: string
 ): Promise<void> {
-    await AuthModel.update(
-        {
-            password,
-            passwordResetToken: "",
-            passwordResetExpires: new Date()
-        },
-        {
-            where: { id }
-        }
-    );
+    try {
+        await AuthModel.update(
+            {
+                password,
+                passwordResetToken: "",
+                passwordResetExpires: new Date()
+            },
+            {
+                where: { id }
+            }
+        );
+    } catch (error) {
+        logger.error("AuthService updatePassword() method error", error)
+        throw error
+    }
 }
 
 export function signToken(id: number, email: string, username: string): string {
@@ -193,6 +217,11 @@ export function signToken(id: number, email: string, username: string): string {
             email,
             username
         },
-        JWT_TOKEN!
+        JWT_TOKEN!,
+        {
+            algorithm: "HS512",
+            issuer: "Jobber Auth",
+            expiresIn: "1d"
+        }
     );
 }

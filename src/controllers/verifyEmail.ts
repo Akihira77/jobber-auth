@@ -1,4 +1,4 @@
-import { BadRequestError, IAuthDocument } from "@Akihira77/jobber-shared";
+import { BadRequestError } from "@Akihira77/jobber-shared";
 import {
     getAuthUserById,
     getAuthUserByVerificationToken,
@@ -6,12 +6,11 @@ import {
 } from "@auth/services/auth.service";
 import { Request, Response } from "express";
 import { StatusCodes } from "http-status-codes";
-import { ValidationError } from "sequelize";
 
 export async function verifyEmail(req: Request, res: Response): Promise<void> {
     try {
         const { token } = req.body;
-        const checkIfUserExist: IAuthDocument =
+        const checkIfUserExist =
             await getAuthUserByVerificationToken(token);
         if (!checkIfUserExist) {
             throw new BadRequestError(
@@ -28,18 +27,8 @@ export async function verifyEmail(req: Request, res: Response): Promise<void> {
             user: updatedUser
         });
     } catch (error) {
-        let message =
-            "There is an error from server. Please try Resend Email again";
-        if (error instanceof ValidationError) {
-            error.errors.forEach((errorItem) => {
-                console.log(`${errorItem.path}: ${errorItem.message}`);
-            });
-        } else if (error instanceof Error) {
-            message = error.message;
-        }
-
         throw new BadRequestError(
-            message,
+            "There is an error from server. Please try Resend Email again",
             "verifyEmail verifyEmail() method error"
         );
     }

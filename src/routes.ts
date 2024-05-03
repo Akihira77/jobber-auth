@@ -14,5 +14,7 @@ export function appRoutes(app: Application): void {
     app.use(BASE_PATH, searchRoutes());
 
     app.use(BASE_PATH, verifyGatewayRequest, authRoutes());
+    // app.use(BASE_PATH, authRoutes());
     app.use(BASE_PATH, verifyGatewayRequest, userRoutes());
+    // app.use(BASE_PATH, userRoutes());
 }

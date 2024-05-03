@@ -26,7 +26,7 @@ import { authChannel } from "@auth/server";
 import { StatusCodes } from "http-status-codes";
 
 export async function signUp(req: Request, res: Response): Promise<void> {
-    const { error } = await Promise.resolve(signUpSchema.validate(req.body));
+    const { error } = signUpSchema.validate(req.body);
 
     if (error?.details) {
         throw new BadRequestError(
@@ -36,7 +36,7 @@ export async function signUp(req: Request, res: Response): Promise<void> {
     }
 
     const { username, email, password, country, profilePicture } = req.body;
-    const checkIfUserExist: IAuthDocument = await getUserByUsernameOrEmail(
+    const checkIfUserExist = await getUserByUsernameOrEmail(
         username,
         email
     );
@@ -85,7 +85,7 @@ export async function signUp(req: Request, res: Response): Promise<void> {
     // publish to 2-notification-service > consumeAuthEmailMessages
     const { exchangeName, routingKey } =
         notificationServiceExchangeNamesAndRoutingKeys.email;
-    await publishDirectMessage(
+    publishDirectMessage(
         authChannel,
         exchangeName,
         routingKey,

@@ -2,8 +2,8 @@ import crypto from "crypto";
 
 import {
     BadRequestError,
-    IAuthDocument,
-    IEmailMessageDetails
+    IEmailMessageDetails,
+    NotFoundError
 } from "@Akihira77/jobber-shared";
 import {
     changePasswordSchema,
@@ -31,7 +31,7 @@ export async function sendForgotPasswordLinkToEmailUser(
     req: Request,
     res: Response
 ): Promise<void> {
-    const { error } = await Promise.resolve(emailSchema.validate(req.body));
+    const { error } = emailSchema.validate(req.body);
 
     if (error?.details) {
         throw new BadRequestError(
@@ -41,10 +41,10 @@ export async function sendForgotPasswordLinkToEmailUser(
     }
 
     const { email } = req.body;
-    const existingUser: IAuthDocument = await getUserByEmail(email);
+    const existingUser = await getUserByEmail(email);
 
     if (!existingUser) {
-        throw new BadRequestError(
+        throw new NotFoundError(
             "Invalid credentials",
             "Password sendForgotPasswordLinkToEmailUser() method error"
         );
@@ -66,7 +66,7 @@ export async function sendForgotPasswordLinkToEmailUser(
     };
     const { exchangeName, routingKey } =
         notificationServiceExchangeNamesAndRoutingKeys.email;
-    await publishDirectMessage(
+    publishDirectMessage(
         authChannel,
         exchangeName,
         routingKey,
@@ -75,7 +75,7 @@ export async function sendForgotPasswordLinkToEmailUser(
     );
 
     res.status(StatusCodes.OK).json({
-        message: "Password reset email has been sent."
+        message: "Password reset password has been sent."
     });
 }
 
@@ -94,15 +94,18 @@ export async function resetPassword(
 
     const { password, confirmPassword } = req.body;
     if (password !== confirmPassword) {
-        throw new BadRequestError("Passwords not match", "Password resetPassword() method error");
+        throw new BadRequestError(
+            "Passwords not match",
+            "Password resetPassword() method error"
+        );
     }
 
     const { token } = req.params;
 
-    const existingUser: IAuthDocument = await getAuthUserByPasswordToken(token);
+    const existingUser = await getAuthUserByPasswordToken(token);
 
     if (!existingUser) {
-        throw new BadRequestError(
+        throw new NotFoundError(
             "Reset token has expired.",
             "Password resetPassword() method error"
         );
@@ -119,7 +122,7 @@ export async function resetPassword(
     };
     const { exchangeName, routingKey } =
         notificationServiceExchangeNamesAndRoutingKeys.email;
-    await publishDirectMessage(
+    publishDirectMessage(
         authChannel,
         exchangeName,
         routingKey,
@@ -136,39 +139,36 @@ export async function changePassword(
     req: Request,
     res: Response
 ): Promise<void> {
-    const { error } = await Promise.resolve(
-        changePasswordSchema.validate(req.body)
-    );
+    const { error } = changePasswordSchema.validate(req.body);
 
     if (error?.details) {
         throw new BadRequestError(
             error.details[0].message,
-            "Password resetPassword() method error"
+            "Password changePassword() method error"
         );
     }
 
     const { currentPassword, newPassword } = req.body;
 
-    if (currentPassword === newPassword) {
-        throw new BadRequestError(
-            "Password cannot same as previous password.",
-            "Password changePassword() method error"
-        );
-    }
-
-    const existingUser: IAuthDocument = await getUserByUsername(
+    const existingUser = await getUserByUsername(
         req.currentUser!.username
     );
 
-    const isValidPassword: boolean = await AuthModel.prototype.comparePassword(currentPassword, existingUser.password ?? "");
+    if (!existingUser) {
+        throw new NotFoundError("User is not found", "Password changePassword() method error")
+    }
 
-    if (!existingUser || !isValidPassword) {
+    const isValidPassword: boolean = await AuthModel.prototype.comparePassword(
+        currentPassword,
+        existingUser.password ?? ""
+    );
+
+    if (!isValidPassword) {
         throw new BadRequestError(
             "Invalid password.",
-            "Password resetPassword() method error"
-            );
-        }
-
+            "Password changePassword() method error"
+        );
+    }
 
     const hashedPassword = await AuthModel.prototype.hashPassword(newPassword);
     await updatePassword(existingUser.id!, hashedPassword);
@@ -181,7 +181,7 @@ export async function changePassword(
     };
     const { exchangeName, routingKey } =
         notificationServiceExchangeNamesAndRoutingKeys.email;
-    await publishDirectMessage(
+    publishDirectMessage(
         authChannel,
         exchangeName,
         routingKey,
