@@ -88,7 +88,7 @@ async function startQueues(): Promise<void> {
     authChannel = (await createConnection()) as Channel;
 }
 
-function startElasticSearch(): void {
+export function startElasticSearch(): void {
     checkConnection();
     createIndex("gigs");
 }
