@@ -9,7 +9,7 @@ const log: Logger = winstonLogger(
     "debug"
 );
 
-export async function createConnection(): Promise<Channel | undefined> {
+export async function createConnection(): Promise<Channel> {
     try {
         const connection: Connection = await client.connect(
             `${RABBITMQ_ENDPOINT}`
@@ -21,7 +21,7 @@ export async function createConnection(): Promise<Channel | undefined> {
         return channel;
     } catch (error) {
         log.error("AuthService createConnection() method error:", error);
-        return undefined;
+        process.exit(1);
     }
 }
 

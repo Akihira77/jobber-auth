@@ -8,7 +8,7 @@ export const emailSchema: ObjectSchema = j.object().keys({
     })
 });
 
-export const passwordSchema: ObjectSchema = j.object().keys({
+export const resetPasswordSchema: ObjectSchema = j.object().keys({
     password: j.string().required().min(4).max(12).messages({
         "string.base": "Password should be of type string",
         "string.min": "Invalid password",

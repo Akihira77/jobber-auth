@@ -51,7 +51,7 @@ export async function signUp(req: Request, res: Response): Promise<void> {
     const profilePublicId = uuidv4();
     const uploadResult = (await uploads(
         profilePicture,
-        `${profilePublicId}`,
+        profilePublicId,
         true,
         true
     )) as UploadApiResponse;
@@ -63,7 +63,7 @@ export async function signUp(req: Request, res: Response): Promise<void> {
         );
     }
 
-    const randomBytes: Buffer = await Promise.resolve(crypto.randomBytes(20));
+    const randomBytes: Buffer = crypto.randomBytes(20);
     const randomCharacters: string = randomBytes.toString("hex");
     const authData: IAuthDocument = {
         username: firstLetterUppercase(username),

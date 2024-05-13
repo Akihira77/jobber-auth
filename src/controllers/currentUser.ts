@@ -65,7 +65,6 @@ export async function resendVerificationEmail(
         template: "verifyEmail"
     };
 
-    // publish to 2-notification-service > consumeAuthEmailMessages
     const { exchangeName, routingKey } =
         notificationServiceExchangeNamesAndRoutingKeys.email;
     publishDirectMessage(

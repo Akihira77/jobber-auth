@@ -27,6 +27,10 @@ export async function verifyEmail(req: Request, res: Response): Promise<void> {
             user: updatedUser
         });
     } catch (error) {
+        if (error) {
+            throw error;
+        }
+
         throw new BadRequestError(
             "There is an error from server. Please try Resend Email again",
             "verifyEmail verifyEmail() method error"

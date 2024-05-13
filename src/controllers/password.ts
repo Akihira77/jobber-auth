@@ -8,7 +8,7 @@ import {
 import {
     changePasswordSchema,
     emailSchema,
-    passwordSchema
+    resetPasswordSchema
 } from "@auth/schemas/password";
 import {
     getAuthUserByPasswordToken,
@@ -83,7 +83,7 @@ export async function resetPassword(
     req: Request,
     res: Response
 ): Promise<void> {
-    const { error } = await Promise.resolve(passwordSchema.validate(req.body));
+    const { error } = resetPasswordSchema.validate(req.body);
 
     if (error?.details) {
         throw new BadRequestError(

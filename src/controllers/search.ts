@@ -12,18 +12,18 @@ export async function gigsQuerySearch(
     let resultHits: unknown[] = [];
     const paginate: IPaginateProps = {
         from,
-        size: parseInt(`${size}`),
+        size: parseInt(size),
         type
     };
     const { query, delivery_time, min, max } = req.query;
 
     console.log(req.params)
     const gigs: ISearchResult = await gigsSearch(
-        `${query}`,
+        query?.toString() ?? "",
         paginate,
-        `${delivery_time}`,
-        parseInt(`${min}`),
-        parseInt(`${max}`)
+        delivery_time?.toString(),
+        parseInt(min?.toString() ?? "0"),
+        parseInt(max?.toString() ?? "999")
     );
 
     for (const item of gigs.hits) {

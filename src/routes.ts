@@ -1,7 +1,5 @@
 import { Application } from "express";
 import { authRoutes } from "@auth/routes/auth.route";
-import { verifyGatewayRequest } from "@Akihira77/jobber-shared";
-import { userRoutes } from "@auth/routes/user.route";
 import { healthRoutes } from "@auth/routes/health.route";
 import { searchRoutes } from "@auth/routes/search.route";
 import { seedRoutes } from "@auth/routes/seed.route";
@@ -13,8 +11,6 @@ export function appRoutes(app: Application): void {
     app.use(BASE_PATH, seedRoutes());
     app.use(BASE_PATH, searchRoutes());
 
-    app.use(BASE_PATH, verifyGatewayRequest, authRoutes());
-    // app.use(BASE_PATH, authRoutes());
-    app.use(BASE_PATH, verifyGatewayRequest, userRoutes());
-    // app.use(BASE_PATH, userRoutes());
+    // app.use(BASE_PATH, verifyGatewayRequest, authRoutes());
+    app.use(BASE_PATH, authRoutes());
 }
