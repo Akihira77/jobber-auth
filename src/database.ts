@@ -1,13 +1,5 @@
-import { winstonLogger } from "@Akihira77/jobber-shared";
-import { Logger } from "winston";
-import { ELASTIC_SEARCH_URL, MYSQL_DB } from "@auth/config";
+import { logger, MYSQL_DB } from "@auth/config";
 import { Sequelize } from "sequelize";
-
-const log: Logger = winstonLogger(
-    `${ELASTIC_SEARCH_URL}`,
-    "authDatabaseServer",
-    "debug"
-);
 
 export const sequelize = new Sequelize(MYSQL_DB!, {
     dialect: "mysql",
@@ -20,12 +12,14 @@ export const sequelize = new Sequelize(MYSQL_DB!, {
 export async function databaseConnection(): Promise<void> {
     try {
         await sequelize.authenticate();
-        log.info(
-            "AuthService MySQL database connection has been established successfully."
+        logger("database.ts - databaseConnection()").info(
+            "AuthService MySQL DB is connected."
         );
     } catch (error) {
-        log.error("AuthService - Unable to connect to database.");
-        log.log(
+        logger("database.ts - databaseConnection()").error(
+            "AuthService - Unable to connect to database."
+        );
+        logger("database.ts - databaseConnection()").log(
             "error",
             "AuthService databaseConnection() method error:",
             error

@@ -17,13 +17,13 @@ export async function gigsQuerySearch(
     };
     const { query, delivery_time, min, max } = req.query;
 
-    console.log(req.params)
+    console.log(req.params);
     const gigs: ISearchResult = await gigsSearch(
         query?.toString() ?? "",
         paginate,
-        delivery_time?.toString(),
         parseInt(min?.toString() ?? "0"),
-        parseInt(max?.toString() ?? "999")
+        parseInt(max?.toString() ?? "999"),
+        delivery_time?.toString()
     );
 
     for (const item of gigs.hits) {
@@ -34,7 +34,7 @@ export async function gigsQuerySearch(
         resultHits = sortBy(resultHits, ["sortId"]);
     }
 
-    console.log(resultHits)
+    console.log(resultHits);
     res.status(StatusCodes.OK).json({
         message: "Search gigs results",
         total: gigs.total,

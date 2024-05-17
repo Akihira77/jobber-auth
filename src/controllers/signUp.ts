@@ -36,10 +36,7 @@ export async function signUp(req: Request, res: Response): Promise<void> {
     }
 
     const { username, email, password, country, profilePicture } = req.body;
-    const checkIfUserExist = await getUserByUsernameOrEmail(
-        username,
-        email
-    );
+    const checkIfUserExist = await getUserByUsernameOrEmail(username, email);
 
     if (checkIfUserExist) {
         throw new BadRequestError(

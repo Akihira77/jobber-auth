@@ -10,8 +10,7 @@ import { StatusCodes } from "http-status-codes";
 export async function verifyEmail(req: Request, res: Response): Promise<void> {
     try {
         const { token } = req.body;
-        const checkIfUserExist =
-            await getAuthUserByVerificationToken(token);
+        const checkIfUserExist = await getAuthUserByVerificationToken(token);
         if (!checkIfUserExist) {
             throw new BadRequestError(
                 "Verification token is either invalid or already used.",

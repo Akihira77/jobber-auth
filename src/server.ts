@@ -6,16 +6,9 @@ import jwt from "jsonwebtoken";
 import {
     CustomError,
     IAuthPayload,
-    IErrorResponse,
-    winstonLogger
+    IErrorResponse
 } from "@Akihira77/jobber-shared";
-import { Logger } from "winston";
-import {
-    API_GATEWAY_URL,
-    ELASTIC_SEARCH_URL,
-    JWT_TOKEN,
-    PORT
-} from "@auth/config";
+import { API_GATEWAY_URL, JWT_TOKEN, logger, PORT } from "@auth/config";
 import {
     Application,
     NextFunction,
@@ -31,12 +24,6 @@ import { checkConnection, createIndex } from "@auth/elasticsearch";
 import { appRoutes } from "@auth/routes";
 import { Channel } from "amqplib";
 import { createConnection } from "@auth/queues/connection";
-
-const log: Logger = winstonLogger(
-    `${ELASTIC_SEARCH_URL}`,
-    "authenticationServer",
-    "debug"
-);
 
 export let authChannel: Channel;
 
@@ -63,7 +50,7 @@ function securityMiddleware(app: Application): void {
     );
 
     app.use((req: Request, _res: Response, next: NextFunction) => {
-        // console.log(req.headers);
+        // console.logger(req.headers);
         if (req.headers.authorization) {
             const token = req.headers.authorization.split(" ")[1];
             const payload = jwt.verify(token, JWT_TOKEN!) as IAuthPayload;
@@ -101,7 +88,10 @@ function authErrorHandler(app: Application): void {
             res: Response,
             next: NextFunction
         ) => {
-            log.error(`AuthService ${error.comingFrom}:`, error);
+            logger("server.ts - authErrorHandler()").error(
+                `AuthService ${error.comingFrom}:`,
+                error
+            );
 
             if (error instanceof CustomError) {
                 res.status(error.statusCode).json(error.serializeErrors());
@@ -114,11 +104,18 @@ function authErrorHandler(app: Application): void {
 function startServer(app: Application): void {
     try {
         const httpServer: http.Server = new http.Server(app);
-        log.info(`Authentication server has started with pid ${process.pid}`);
+        logger("server.ts - startServer()").info(
+            `AuthService has started with pid ${process.pid}`
+        );
         httpServer.listen(Number(PORT), () => {
-            log.info(`Authentication server running on port ${PORT}`);
+            logger("server.ts - startServer()").info(
+                `AuthService running on port ${PORT}`
+            );
         });
     } catch (error) {
-        log.error("AuthService startServer() method error:", error);
+        logger("server.ts - startServer()").error(
+            "AuthService startServer() method error:",
+            error
+        );
     }
 }

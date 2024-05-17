@@ -1,13 +1,5 @@
-import { winstonLogger } from "@Akihira77/jobber-shared";
-import { ELASTIC_SEARCH_URL, RABBITMQ_ENDPOINT } from "@auth/config";
+import { logger, RABBITMQ_ENDPOINT } from "@auth/config";
 import client, { Connection, Channel } from "amqplib";
-import { Logger } from "winston";
-
-const log: Logger = winstonLogger(
-    `${ELASTIC_SEARCH_URL}`,
-    "authQueueConnection",
-    "debug"
-);
 
 export async function createConnection(): Promise<Channel> {
     try {
@@ -15,12 +7,17 @@ export async function createConnection(): Promise<Channel> {
             `${RABBITMQ_ENDPOINT}`
         );
         const channel: Channel = await connection.createChannel();
-        log.info("Auth server connected to queue successfully...");
+        logger("queues/connection.ts - createConnection()").info(
+            "AuthService connected to RabbitMQ successfully..."
+        );
         closeConnection(channel, connection);
 
         return channel;
     } catch (error) {
-        log.error("AuthService createConnection() method error:", error);
+        logger("queues/connection.ts - createConnection()").error(
+            "AuthService createConnection() method error:",
+            error
+        );
         process.exit(1);
     }
 }

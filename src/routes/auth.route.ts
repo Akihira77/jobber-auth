@@ -1,4 +1,7 @@
-import { getCurrentUser, resendVerificationEmail } from "@auth/controllers/currentUser";
+import {
+    getCurrentUser,
+    resendVerificationEmail
+} from "@auth/controllers/currentUser";
 import {
     changePassword,
     resetPassword,

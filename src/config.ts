@@ -1,5 +1,7 @@
 import dotenv from "dotenv";
 import cloudinary from "cloudinary";
+import { Logger } from "winston";
+import { winstonLogger } from "@Akihira77/jobber-shared";
 
 if (process.env.NODE_ENV !== "production") {
     dotenv.config({ path: "./.env" });
@@ -63,3 +65,10 @@ export const buyerServiceExchangeNamesAndRoutingKeys = {
         routingKey: "user-buyer"
     }
 };
+
+export const logger = (moduleName?: string): Logger =>
+    winstonLogger(
+        `${ELASTIC_SEARCH_URL}`,
+        moduleName ?? "Auth Service",
+        "debug"
+    );

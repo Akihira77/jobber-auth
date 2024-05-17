@@ -76,7 +76,7 @@ Auth.init(
         },
         createdAt: {
             type: DataTypes.DATE,
-            defaultValue: Date.now
+            defaultValue: new Date()
         },
         passwordResetToken: { type: DataTypes.STRING, allowNull: true },
         passwordResetExpires: {

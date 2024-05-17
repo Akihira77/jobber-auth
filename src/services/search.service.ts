@@ -3,19 +3,11 @@ import {
     IPaginateProps,
     IQueryList,
     ISearchResult,
-    ISellerGig,
-    winstonLogger
+    ISellerGig
 } from "@Akihira77/jobber-shared";
-import { ELASTIC_SEARCH_URL } from "@auth/config";
+import { logger } from "@auth/config";
 import { elasticSearchClient, getDocumentById } from "@auth/elasticsearch";
 import { SearchResponse } from "@elastic/elasticsearch/lib/api/types";
-import { Logger } from "winston";
-
-const log: Logger = winstonLogger(
-    `${ELASTIC_SEARCH_URL}`,
-    "authServiceServer",
-    "debug"
-);
 
 export async function getGigById(
     index: string,
@@ -29,9 +21,9 @@ export async function getGigById(
 export async function gigsSearch(
     searchQuery: string,
     paginate: IPaginateProps,
-    deliveryTime?: string,
-    min?: number,
-    max?: number
+    min: number,
+    max: number,
+    deliveryTime?: string
 ): Promise<ISearchResult> {
     const { from, size, type } = paginate;
     // try it on elasticsearch dev tools
@@ -67,7 +59,7 @@ export async function gigsSearch(
         });
     }
 
-    if (!isNaN(parseInt(`${min}`)) && !isNaN(parseInt(`${max}`))) {
+    if (!isNaN(min) && !isNaN(max)) {
         queryList.push({
             range: {
                 price: {
@@ -101,7 +93,10 @@ export async function gigsSearch(
 
         return { total: total.value, hits };
     } catch (error) {
-        log.error("AuthService gigsSearch() method error:", error);
+        logger("services/search.service.ts - gigsSearch()").error(
+            "AuthService gigsSearch() method error:",
+            error
+        );
         return { total: 0, hits: [] };
     }
 }

@@ -150,12 +150,13 @@ export async function changePassword(
 
     const { currentPassword, newPassword } = req.body;
 
-    const existingUser = await getUserByUsername(
-        req.currentUser!.username
-    );
+    const existingUser = await getUserByUsername(req.currentUser!.username);
 
     if (!existingUser) {
-        throw new NotFoundError("User is not found", "Password changePassword() method error")
+        throw new NotFoundError(
+            "User is not found",
+            "Password changePassword() method error"
+        );
     }
 
     const isValidPassword: boolean = await AuthModel.prototype.comparePassword(

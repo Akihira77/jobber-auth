@@ -15,27 +15,31 @@ import { publishDirectMessage } from "@auth/queues/auth.producer";
 import { authChannel } from "@auth/server";
 import { sign } from "jsonwebtoken";
 import { omit } from "lodash";
-import { Model, Op } from "sequelize";
+import { Op } from "sequelize";
 import { Logger } from "winston";
 
-const logger: Logger = winstonLogger(`${ELASTIC_SEARCH_URL}`, "authService", "debug")
+const logger: Logger = winstonLogger(
+    `${ELASTIC_SEARCH_URL}`,
+    "authService",
+    "debug"
+);
 
 export async function createAuthUser(
     data: IAuthDocument
 ): Promise<IAuthDocument> {
     try {
-        const result: Model = await AuthModel.create(data);
+        const result = await AuthModel.create(data);
+        console.log(result.dataValues);
         const messageDetails: IAuthBuyerMessageDetails = {
-            username: result.dataValues.username!,
-            email: result.dataValues.email!,
-            country: result.dataValues.country!,
-            profilePicture: result.dataValues.profilePicture!,
-            createdAt: result.dataValues.createdAt!,
+            username: result.dataValues.username,
+            email: result.dataValues.email,
+            country: result.dataValues.country,
+            profilePicture: result.dataValues.profilePicture,
+            createdAt: result.dataValues.createdAt,
             type: "auth"
         };
 
-        const { buyer } =
-            buyerServiceExchangeNamesAndRoutingKeys;
+        const { buyer } = buyerServiceExchangeNamesAndRoutingKeys;
         await publishDirectMessage(
             authChannel,
             buyer.exchangeName,
@@ -48,18 +52,20 @@ export async function createAuthUser(
 
         return userData;
     } catch (error) {
-        logger.error("AuthService createAuthUser() method error", error)
-        throw new Error("Unexpected error occured. Please try again.")
+        logger.error("AuthService createAuthUser() method error", error);
+        throw new Error("Unexpected error occured. Please try again.");
     }
 }
 
-export async function getAuthUserById(id: number): Promise<IAuthDocument | undefined> {
-    const user = (await AuthModel.findOne({
+export async function getAuthUserById(
+    id: number
+): Promise<IAuthDocument | undefined> {
+    const user = await AuthModel.findOne({
         where: { id },
         attributes: {
             exclude: ["password"]
         }
-    }));
+    });
 
     return user?.dataValues;
 }
@@ -68,7 +74,7 @@ export async function getUserByUsernameOrEmail(
     username: string,
     email: string
 ): Promise<IAuthDocument | undefined> {
-    const user = (await AuthModel.findOne({
+    const user = await AuthModel.findOne({
         where: {
             [Op.or]: [
                 {
@@ -82,7 +88,7 @@ export async function getUserByUsernameOrEmail(
         attributes: {
             exclude: ["password"]
         }
-    }));
+    });
 
     return user?.dataValues;
 }
@@ -90,21 +96,23 @@ export async function getUserByUsernameOrEmail(
 export async function getUserByUsername(
     username: string
 ): Promise<IAuthDocument | undefined> {
-    const user = (await AuthModel.findOne({
+    const user = await AuthModel.findOne({
         where: {
             username: firstLetterUppercase(username)
         }
-    }));
+    });
 
     return user?.dataValues;
 }
 
-export async function getUserByEmail(email: string): Promise<IAuthDocument | undefined> {
-    const user = (await AuthModel.findOne({
+export async function getUserByEmail(
+    email: string
+): Promise<IAuthDocument | undefined> {
+    const user = await AuthModel.findOne({
         where: {
             email: lowerCase(email)
         }
-    }));
+    });
 
     return user?.dataValues;
 }
@@ -112,14 +120,14 @@ export async function getUserByEmail(email: string): Promise<IAuthDocument | und
 export async function getAuthUserByVerificationToken(
     token: string
 ): Promise<IAuthDocument | undefined> {
-    const user = (await AuthModel.findOne({
+    const user = await AuthModel.findOne({
         where: {
             emailVerificationToken: token
         },
         attributes: {
             exclude: ["password"]
         }
-    }));
+    });
 
     return user?.dataValues;
 }
@@ -127,7 +135,7 @@ export async function getAuthUserByVerificationToken(
 export async function getAuthUserByPasswordToken(
     token: string
 ): Promise<IAuthDocument | undefined> {
-    const user = (await AuthModel.findOne({
+    const user = await AuthModel.findOne({
         where: {
             [Op.or]: [
                 {
@@ -138,7 +146,7 @@ export async function getAuthUserByPasswordToken(
                 }
             ]
         }
-    }));
+    });
 
     return user?.dataValues;
 }
@@ -152,19 +160,19 @@ export async function updateVerifyEmail(
         await AuthModel.update(
             !emailVerificationToken
                 ? {
-                    emailVerified
-                }
+                      emailVerified
+                  }
                 : {
-                    emailVerified,
-                    emailVerificationToken
-                },
+                      emailVerified,
+                      emailVerificationToken
+                  },
             {
                 where: { id }
             }
         );
     } catch (error) {
-        logger.error("AuthService updateVerifyEmail() method error", error)
-        throw error
+        logger.error("AuthService updateVerifyEmail() method error", error);
+        throw error;
     }
 }
 
@@ -183,9 +191,8 @@ export async function updatePasswordToken(
                 where: { id }
             }
         );
-
     } catch (error) {
-        logger.error("AuthService updatePasswordToken() method error", error)
+        logger.error("AuthService updatePasswordToken() method error", error);
     }
 }
 
@@ -205,8 +212,8 @@ export async function updatePassword(
             }
         );
     } catch (error) {
-        logger.error("AuthService updatePassword() method error", error)
-        throw error
+        logger.error("AuthService updatePassword() method error", error);
+        throw error;
     }
 }
 

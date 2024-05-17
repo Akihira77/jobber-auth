@@ -24,12 +24,13 @@ export async function getCurrentUser(
     res: Response
 ): Promise<void> {
     let user = null;
-    const existingUser = await getAuthUserById(
-        req.currentUser!.id
-    );
+    const existingUser = await getAuthUserById(req.currentUser!.id);
 
     if (!existingUser) {
-        throw new NotFoundError("User is not found", "CurrentUser getCurrentUser() method error")
+        throw new NotFoundError(
+            "User is not found",
+            "CurrentUser getCurrentUser() method error"
+        );
     }
 
     if (Object.keys(existingUser).length) {

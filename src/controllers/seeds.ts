@@ -29,7 +29,7 @@ export async function generate(req: Request, res: Response): Promise<void> {
     for (let i = 0; i < usernames.length; i++) {
         const username = usernames[i];
         const email = faker.internet.email();
-        const password = "user12";
+        const password = "jobberuser";
         const country = faker.location.country();
         const profilePicture = faker.image.urlPicsumPhotos();
 
@@ -46,12 +46,10 @@ export async function generate(req: Request, res: Response): Promise<void> {
         }
 
         const profilePublicId = uuidv4();
-        const randomBytes: Buffer = await Promise.resolve(
-            crypto.randomBytes(20)
-        );
+        const randomBytes: Buffer = crypto.randomBytes(20);
         const randomCharacters: string = randomBytes.toString("hex");
         const authData: IAuthDocument = {
-            username: firstLetterUppercase(username),
+            username: username,
             email: lowerCase(email),
             profilePublicId,
             password,
@@ -61,10 +59,11 @@ export async function generate(req: Request, res: Response): Promise<void> {
             emailVerified: sample([0, 1])
         };
 
-        await createAuthUser(authData);
+        createAuthUser(authData);
     }
 
     res.status(StatusCodes.OK).json({
-        message: "Seed users created successfully"
+        message: "Seed users created successfully",
+        total: count
     });
 }
