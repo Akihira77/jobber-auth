@@ -24,6 +24,7 @@ import { checkConnection, createIndex } from "@auth/elasticsearch";
 import { appRoutes } from "@auth/routes";
 import { Channel } from "amqplib";
 import { createConnection } from "@auth/queues/connection";
+import morgan from "morgan";
 
 export let authChannel: Channel;
 
@@ -65,6 +66,7 @@ function standardMiddleware(app: Application): void {
     app.use(compression());
     app.use(json({ limit: "200mb" }));
     app.use(urlencoded({ extended: true, limit: "200mb" }));
+    app.use(morgan("dev"))
 }
 
 function routesMiddleware(app: Application): void {
