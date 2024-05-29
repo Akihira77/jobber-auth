@@ -2,22 +2,23 @@ import { MYSQL_DB } from "@auth/config";
 import { Sequelize } from "sequelize";
 import { Logger } from "winston";
 
-export const sequelize = new Sequelize(MYSQL_DB!, {
-    dialect: "mysql",
-    logging: false,
-    dialectOptions: {
-        multipleStatements: true
-    }
-});
-
+export let sequelize: Sequelize;
 export async function databaseConnection(
     logger: (moduleName: string) => Logger
-): Promise<void> {
+): Promise<Sequelize> {
     try {
-        await sequelize.authenticate();
+        sequelize = new Sequelize(MYSQL_DB!, {
+            dialect: "mysql",
+            logging: false,
+            dialectOptions: {
+                multipleStatements: true
+            }
+        });
+            await sequelize.authenticate();
         logger("database.ts - databaseConnection()").info(
             "AuthService MySQL DB is connected."
         );
+        return sequelize;
     } catch (error) {
         logger("database.ts - databaseConnection()").error(
             "AuthService - Unable to connect to database."
@@ -27,5 +28,7 @@ export async function databaseConnection(
             "AuthService databaseConnection() method error:",
             error
         );
+
+        throw error;
     }
 }
