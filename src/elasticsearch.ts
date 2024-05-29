@@ -39,6 +39,8 @@ export class ElasticSearchClient {
                 );
             }
         }
+
+        this.closeConnection(this.client);
     }
 
     async checkExistingIndex(indexName: string): Promise<boolean> {
@@ -94,5 +96,11 @@ export class ElasticSearchClient {
             );
             return {} as ISellerGig;
         }
+    }
+
+    closeConnection(client: Client): void {
+        process.once("exit", async () => {
+            await client.close();
+        })
     }
 }
