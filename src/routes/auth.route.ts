@@ -1,30 +1,30 @@
-import {
-    getCurrentUser,
-    resendVerificationEmail
-} from "@auth/controllers/currentUser";
-import {
-    changePassword,
-    resetPassword,
-    sendForgotPasswordLinkToEmailUser
-} from "@auth/controllers/password";
-import { getRefreshToken } from "@auth/controllers/refreshToken";
-import { signIn } from "@auth/controllers/signIn";
-import { signUp } from "@auth/controllers/signUp";
-import { verifyEmail } from "@auth/controllers/verifyEmail";
+import { AuthController } from "@auth/controllers/auth.controller";
 import express, { Router } from "express";
 
 const router: Router = express.Router();
 
-export function authRoutes(): Router {
-    router.get("/current-user", getCurrentUser);
-    router.get("/refresh-token/:username", getRefreshToken);
-    router.post("/resend-verification-email", resendVerificationEmail);
-    router.post("/signup", signUp);
-    router.post("/signin", signIn);
-    router.put("/verify-email", verifyEmail);
-    router.put("/forgot-password", sendForgotPasswordLinkToEmailUser);
-    router.put("/reset-password/:token", resetPassword);
-    router.put("/change-password", changePassword);
+export function authRoutes(controller: AuthController): Router {
+    router.get("/current-user", controller.getCurrentUser.bind(controller));
+    router.get(
+        "/refresh-token/:username",
+        controller.getRefreshToken.bind(controller)
+    );
+    router.post(
+        "/resend-verification-email",
+        controller.resendVerificationEmail.bind(controller)
+    );
+    router.post("/signup", controller.signUp.bind(controller));
+    router.post("/signin", controller.signIn.bind(controller));
+    router.put("/verify-email", controller.verifyEmail.bind(controller));
+    router.put(
+        "/forgot-password",
+        controller.sendForgotPasswordLinkToEmailUser.bind(controller)
+    );
+    router.put(
+        "/reset-password/:token",
+        controller.resetPassword.bind(controller)
+    );
+    router.put("/change-password", controller.changePassword.bind(controller));
 
     return router;
 }

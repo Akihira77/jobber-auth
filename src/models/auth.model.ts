@@ -4,8 +4,6 @@ import { compare, hash } from "bcryptjs";
 import { DataTypes, Model } from "sequelize";
 import { NODE_ENV } from "@auth/config";
 
-const SALT_ROUND = 10;
-
 // type AuthUserCreationAttributes = Optional<
 //     IAuthDocument,
 //     | "id"
@@ -16,7 +14,12 @@ const SALT_ROUND = 10;
 //     | "hashPassword"
 // >;
 
-class Auth extends Model<IAuthDocument> {
+export class AuthModel extends Model<IAuthDocument> {
+    public SALT_ROUND: number;
+    constructor() {
+        super();
+        this.SALT_ROUND = 10;
+    }
     async comparePassword(
         password: string,
         hashedPassword: string
@@ -25,11 +28,11 @@ class Auth extends Model<IAuthDocument> {
     }
 
     async hashPassword(password: string): Promise<string> {
-        return hash(password, SALT_ROUND);
+        return hash(password, this.SALT_ROUND);
     }
 }
 
-Auth.init(
+AuthModel.init(
     {
         id: {
             type: DataTypes.INTEGER,
@@ -89,10 +92,11 @@ Auth.init(
         sequelize,
         modelName: "Auths",
         hooks: {
-            beforeCreate: async (auth: Auth) => {
+            beforeCreate: async (auth: AuthModel) => {
                 const hashedPassword: string = await hash(
                     auth.dataValues.password!,
-                    SALT_ROUND
+
+                    auth.SALT_ROUND
                 );
                 auth.dataValues.password = hashedPassword;
             }
@@ -115,7 +119,5 @@ Auth.init(
 );
 
 if (NODE_ENV !== "test") {
-    Auth.sync({});
+    AuthModel.sync({});
 }
-
-export const AuthModel = Auth;

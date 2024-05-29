@@ -1,11 +1,14 @@
-import { gigsQuerySearch, singleGigById } from "@auth/controllers/search";
+import { AuthController } from "@auth/controllers/auth.controller";
 import express, { Router } from "express";
 
 const router: Router = express.Router();
 
-export function searchRoutes(): Router {
-    router.get("/search/gig/:from/:size/:type", gigsQuerySearch);
-    router.get("/search/gig/:id", singleGigById);
+export function searchRoutes(controller: AuthController): Router {
+    router.get(
+        "/search/gig/:from/:size/:type",
+        controller.gigsQuerySearch.bind(controller)
+    );
+    router.get("/search/gig/:id", controller.getSingleGigById.bind(controller));
 
     return router;
 }

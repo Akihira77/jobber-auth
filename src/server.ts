@@ -8,7 +8,7 @@ import {
     IAuthPayload,
     IErrorResponse
 } from "@Akihira77/jobber-shared";
-import { API_GATEWAY_URL, JWT_TOKEN, logger, PORT } from "@auth/config";
+import { API_GATEWAY_URL, JWT_TOKEN, PORT } from "@auth/config";
 import {
     Application,
     NextFunction,
@@ -20,22 +20,23 @@ import {
 import hpp from "hpp";
 import helmet from "helmet";
 import cors from "cors";
-import { checkConnection, createIndex } from "@auth/elasticsearch";
 import { appRoutes } from "@auth/routes";
-import { Channel } from "amqplib";
-import { createConnection } from "@auth/queues/connection";
-import morgan from "morgan";
+import { Logger } from "winston";
 
-export let authChannel: Channel;
+import { ElasticSearchClient } from "./elasticsearch";
+import { AuthQueue } from "./queues/auth.queue";
 
-export function start(app: Application): void {
+export async function start(
+    app: Application,
+    logger: (moduleName: string) => Logger
+): Promise<void> {
+    const queue = await startQueues(logger);
+    const elastic = await startElasticSearch(logger);
     securityMiddleware(app);
     standardMiddleware(app);
-    routesMiddleware(app);
-    startQueues();
-    startElasticSearch();
-    authErrorHandler(app);
-    startServer(app);
+    routesMiddleware(app, queue, elastic, logger);
+    authErrorHandler(app, logger);
+    startServer(app, logger);
 }
 
 function securityMiddleware(app: Application): void {
@@ -66,23 +67,39 @@ function standardMiddleware(app: Application): void {
     app.use(compression());
     app.use(json({ limit: "200mb" }));
     app.use(urlencoded({ extended: true, limit: "200mb" }));
-    app.use(morgan("dev"))
 }
 
-function routesMiddleware(app: Application): void {
-    appRoutes(app);
+function routesMiddleware(
+    app: Application,
+    queue: AuthQueue,
+    elastic: ElasticSearchClient,
+    logger: (moduleName: string) => Logger
+): void {
+    appRoutes(app, queue, elastic, logger);
 }
 
-async function startQueues(): Promise<void> {
-    authChannel = (await createConnection()) as Channel;
+async function startQueues(
+    logger: (moduleName: string) => Logger
+): Promise<AuthQueue> {
+    const queue = new AuthQueue(null, logger);
+    await queue.createConnection();
+    return queue;
 }
 
-export function startElasticSearch(): void {
-    checkConnection();
-    createIndex("gigs");
+export async function startElasticSearch(
+    logger: (moduleName: string) => Logger
+): Promise<ElasticSearchClient> {
+    const elastic = new ElasticSearchClient(logger);
+    await elastic.checkConnection();
+    elastic.createIndex("gigs");
+
+    return elastic;
 }
 
-function authErrorHandler(app: Application): void {
+function authErrorHandler(
+    app: Application,
+    logger: (moduleName: string) => Logger
+): void {
     app.use(
         (
             error: IErrorResponse,
@@ -103,7 +120,10 @@ function authErrorHandler(app: Application): void {
     );
 }
 
-function startServer(app: Application): void {
+function startServer(
+    app: Application,
+    logger: (moduleName: string) => Logger
+): void {
     try {
         const httpServer: http.Server = new http.Server(app);
         logger("server.ts - startServer()").info(

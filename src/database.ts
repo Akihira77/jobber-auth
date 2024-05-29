@@ -1,5 +1,6 @@
-import { logger, MYSQL_DB } from "@auth/config";
+import { MYSQL_DB } from "@auth/config";
 import { Sequelize } from "sequelize";
+import { Logger } from "winston";
 
 export const sequelize = new Sequelize(MYSQL_DB!, {
     dialect: "mysql",
@@ -9,7 +10,9 @@ export const sequelize = new Sequelize(MYSQL_DB!, {
     }
 });
 
-export async function databaseConnection(): Promise<void> {
+export async function databaseConnection(
+    logger: (moduleName: string) => Logger
+): Promise<void> {
     try {
         await sequelize.authenticate();
         logger("database.ts - databaseConnection()").info(
