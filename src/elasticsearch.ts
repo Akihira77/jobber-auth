@@ -101,6 +101,6 @@ export class ElasticSearchClient {
     closeConnection(client: Client): void {
         process.once("exit", async () => {
             await client.close();
-        })
+        });
     }
 }

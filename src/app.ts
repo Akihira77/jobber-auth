@@ -1,9 +1,9 @@
-import express, { Express } from "express";
 import { start } from "@auth/server";
-import { databaseConnection, sequelize } from "@auth/database";
+import { databaseConnection } from "@auth/database";
 import cloudinary from "cloudinary";
 import { winstonLogger } from "@Akihira77/jobber-shared";
 import { Logger } from "winston";
+import { Hono } from "hono";
 
 import {
     CLOUD_API_KEY,
@@ -26,16 +26,21 @@ async function main(): Promise<void> {
             api_secret: CLOUD_API_SECRET
         });
 
-        const app: Express = express();
-        await databaseConnection(logger);
+        const app = new Hono();
+        const db = await databaseConnection(logger);
+
+        logger("app.ts - main()").info(
+            "AuthService MySQL Database is connected."
+        );
         await start(app, logger);
+
+        process.once("exit", async () => {
+            await db.connectionManager.close();
+        });
     } catch (error) {
+        logger("app.ts - main()").error(error);
         process.exit(1);
     }
-
-    process.once("exit", async () => {
-        await sequelize.connectionManager.close();
-    });
 }
 
 main();

@@ -89,7 +89,7 @@ AuthModel.init(
         }
     },
     {
-        sequelize,
+        sequelize: sequelize,
         modelName: "Auths",
         hooks: {
             beforeCreate: async (auth: AuthModel) => {

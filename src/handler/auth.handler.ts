@@ -4,9 +4,11 @@ import {
     BadRequestError,
     firstLetterUppercase,
     IAuthDocument,
+    IAuthPayload,
     IEmailMessageDetails,
     IPaginateProps,
     ISearchResult,
+    ISellerGig,
     isEmail,
     lowerCase,
     NotFoundError,
@@ -22,20 +24,17 @@ import { signInSchema } from "@auth/schemas/signin";
 import { signUpSchema } from "@auth/schemas/signup";
 import { AuthService } from "@auth/services/auth.service";
 import { UploadApiResponse } from "cloudinary";
-import { Request, Response } from "express";
-import { StatusCodes } from "http-status-codes";
 import { omit, sample, sortBy } from "lodash";
 import { v4 as uuidv4 } from "uuid";
 import { generateUsername } from "unique-username-generator";
 import { faker } from "@faker-js/faker";
 import {
     changePasswordSchema,
-    emailSchema,
     resetPasswordSchema
 } from "@auth/schemas/password";
 import { UnauthSearchService } from "@auth/services/search.service";
 
-export class AuthController {
+export class AuthHandler {
     private authModel: AuthModel;
     constructor(
         private queue: AuthQueue,
@@ -46,47 +45,44 @@ export class AuthController {
     }
 
     // search feature for unauth user
-    async gigsQuerySearch(req: Request, res: Response): Promise<void> {
-        const { from, size, type } = req.params;
-        let resultHits: unknown[] = [];
-        const paginate: IPaginateProps = {
-            from,
-            size: parseInt(size),
-            type
-        };
-        const { query, delivery_time, min, max } = req.query;
+    async gigsQuerySearch(
+        params: IPaginateProps,
+        query: string,
+        delivery_time: string,
+        min: number,
+        max: number
+    ): Promise<{ resultHits: ISellerGig[]; total: number }> {
+        let resultHits: ISellerGig[] = [];
 
         const gigs: ISearchResult = await this.searchService.gigsSearch(
-            query?.toString() ?? "",
-            paginate,
-            parseInt(min?.toString() ?? "0"),
-            parseInt(max?.toString() ?? "999"),
-            delivery_time?.toString()
+            query,
+            params,
+            min,
+            max,
+            delivery_time
         );
 
         for (const item of gigs.hits) {
-            resultHits.push(item._source);
+            resultHits.push(item._source as ISellerGig);
         }
 
-        if (type === "backward") {
+        if (params.type === "backward") {
             resultHits = sortBy(resultHits, ["sortId"]);
         }
 
-        res.status(StatusCodes.OK).json({
-            message: "Search gigs results",
-            total: gigs.total,
-            gigs: resultHits
-        });
+        return { resultHits, total: gigs.total };
     }
 
-    async getSingleGigById(req: Request, res: Response): Promise<void> {
-        const gig = await this.searchService.getGigById("gigs", req.params.id);
+    async getSingleGigById(gigId: string): Promise<ISellerGig> {
+        const gig = await this.searchService.getGigById("gigs", gigId);
 
-        res.status(StatusCodes.OK).json({ message: "Single gig result", gig });
+        return gig;
     }
 
-    async signIn(req: Request, res: Response): Promise<void> {
-        const { error } = signInSchema.validate(req.body);
+    async signIn(
+        reqBody: any
+    ): Promise<{ user: Omit<IAuthDocument, "password">; token: string }> {
+        const { error, value } = signInSchema.validate(reqBody);
 
         if (error?.details) {
             throw new BadRequestError(
@@ -95,7 +91,7 @@ export class AuthController {
             );
         }
 
-        const { username, password } = req.body;
+        const { username, password } = value;
         const isValidEmail = isEmail(username);
         const existingUser = isValidEmail
             ? await this.authService.getUserByEmail(username)
@@ -127,15 +123,13 @@ export class AuthController {
         );
         const userData = omit(existingUser, ["password"]);
 
-        res.status(StatusCodes.OK).json({
-            message: "User sign in successfully",
-            user: userData,
-            token: userJWT
-        });
+        return { user: userData, token: userJWT };
     }
 
-    async signUp(req: Request, res: Response): Promise<void> {
-        const { error } = signUpSchema.validate(req.body);
+    async signUp(
+        reqBody: any
+    ): Promise<{ user: IAuthDocument; token: string }> {
+        const { error, value } = signUpSchema.validate(reqBody);
 
         if (error?.details) {
             throw new BadRequestError(
@@ -144,7 +138,7 @@ export class AuthController {
             );
         }
 
-        const { username, email, password, country, profilePicture } = req.body;
+        const { username, email, password, country, profilePicture } = value;
         const checkIfUserExist =
             await this.authService.getUserByUsernameOrEmail(username, email);
 
@@ -206,16 +200,11 @@ export class AuthController {
             result.username!
         );
 
-        res.status(StatusCodes.CREATED).json({
-            message: "User created successfully",
-            user: result,
-            token: userJwt
-        });
+        return { user: result, token: userJwt };
     }
 
-    async verifyEmail(req: Request, res: Response): Promise<void> {
+    async verifyEmail(token: string): Promise<IAuthDocument | undefined> {
         try {
-            const { token } = req.body;
             const checkIfUserExist =
                 await this.authService.getAuthUserByVerificationToken(token);
             if (!checkIfUserExist) {
@@ -230,10 +219,7 @@ export class AuthController {
                 checkIfUserExist.id!
             );
 
-            res.status(StatusCodes.OK).json({
-                message: "Email verified successfully.",
-                user: updatedUser
-            });
+            return updatedUser;
         } catch (error) {
             if (error) {
                 throw error;
@@ -246,10 +232,10 @@ export class AuthController {
         }
     }
 
-    async getRefreshToken(req: Request, res: Response): Promise<void> {
-        const existingUser = await this.authService.getUserByUsername(
-            req.params.username
-        );
+    async getRefreshToken(
+        username: string
+    ): Promise<{ userJWT: string; user: IAuthDocument | undefined }> {
+        const existingUser = await this.authService.getUserByUsername(username);
 
         if (!existingUser) {
             throw new NotFoundError(
@@ -264,17 +250,15 @@ export class AuthController {
             existingUser.username!
         );
 
-        res.status(StatusCodes.OK).json({
-            message: "Refresh token generated",
-            user: existingUser,
-            token: userJWT
-        });
+        return { userJWT, user: existingUser };
     }
 
-    async getCurrentUser(req: Request, res: Response): Promise<void> {
+    async getCurrentUser(
+        currUser: IAuthPayload
+    ): Promise<IAuthDocument | null> {
         let user = null;
         const existingUser = await this.authService.getAuthUserById(
-            req.currentUser!.id
+            currUser.id
         );
 
         if (!existingUser) {
@@ -288,14 +272,12 @@ export class AuthController {
             user = existingUser;
         }
 
-        res.status(StatusCodes.OK).json({
-            message: "Authenticated user",
-            user
-        });
+        return user;
     }
 
-    async resendVerificationEmail(req: Request, res: Response): Promise<void> {
-        const { email } = req.body;
+    async resendVerificationEmail(
+        email: string
+    ): Promise<IAuthDocument | undefined> {
         const checkIfUserExist = await this.authService.getUserByEmail(email);
 
         if (!checkIfUserExist) {
@@ -336,26 +318,10 @@ export class AuthController {
             checkIfUserExist.id!
         );
 
-        res.status(StatusCodes.OK).json({
-            message: "Email verification has been sent",
-            user: updatedUser
-        });
+        return updatedUser;
     }
 
-    async sendForgotPasswordLinkToEmailUser(
-        req: Request,
-        res: Response
-    ): Promise<void> {
-        const { error } = emailSchema.validate(req.body);
-
-        if (error?.details) {
-            throw new BadRequestError(
-                error.details[0].message,
-                "Password sendForgotPasswordLinkToEmailUser() method error"
-            );
-        }
-
-        const { email } = req.body;
+    async sendForgotPasswordLinkToEmailUser(email: string): Promise<void> {
         const existingUser = await this.authService.getUserByEmail(email);
 
         if (!existingUser) {
@@ -392,13 +358,11 @@ export class AuthController {
             "Forgot password message has been sent to notification service."
         );
 
-        res.status(StatusCodes.OK).json({
-            message: "Password reset password has been sent."
-        });
+        return;
     }
 
-    async resetPassword(req: Request, res: Response): Promise<void> {
-        const { error } = resetPasswordSchema.validate(req.body);
+    async resetPassword(token: string, reqBody: any): Promise<void> {
+        const { error, value } = resetPasswordSchema.validate(reqBody);
 
         if (error?.details) {
             throw new BadRequestError(
@@ -407,15 +371,13 @@ export class AuthController {
             );
         }
 
-        const { password, confirmPassword } = req.body;
+        const { password, confirmPassword } = value;
         if (password !== confirmPassword) {
             throw new BadRequestError(
                 "Passwords not match",
                 "Password resetPassword() method error"
             );
         }
-
-        const { token } = req.params;
 
         const existingUser =
             await this.authService.getAuthUserByPasswordToken(token);
@@ -445,13 +407,11 @@ export class AuthController {
             "Reset password success message has been sent to notification service."
         );
 
-        res.status(StatusCodes.OK).json({
-            message: "Password successfully updated."
-        });
+        return;
     }
 
-    async changePassword(req: Request, res: Response): Promise<void> {
-        const { error } = changePasswordSchema.validate(req.body);
+    async changePassword(reqBody: any, currUser: IAuthPayload): Promise<void> {
+        const { error, value } = changePasswordSchema.validate(reqBody);
 
         if (error?.details) {
             throw new BadRequestError(
@@ -460,10 +420,10 @@ export class AuthController {
             );
         }
 
-        const { currentPassword, newPassword } = req.body;
+        const { currentPassword, newPassword } = value;
 
         const existingUser = await this.authService.getUserByUsername(
-            req.currentUser!.username
+            currUser.username
         );
 
         if (!existingUser) {
@@ -503,16 +463,13 @@ export class AuthController {
             "Password change success message has been sent to notification service."
         );
 
-        res.status(StatusCodes.OK).json({
-            message: "Password successfully updated."
-        });
+        return;
     }
 
-    async seedAuthData(req: Request, res: Response): Promise<void> {
-        const { count } = req.params;
+    async seedAuthData(count: number): Promise<void> {
         const usernames: string[] = [];
 
-        for (let i = 0; i < parseInt(count, 10); i++) {
+        for (let i = 0; i < count; i++) {
             const name: string = generateUsername("", 0, 12);
             usernames.push(firstLetterUppercase(name));
         }
@@ -554,9 +511,6 @@ export class AuthController {
             this.authService.createAuthUser(authData);
         }
 
-        res.status(StatusCodes.OK).json({
-            message: "Seed users created successfully",
-            total: count
-        });
+        return;
     }
 }
