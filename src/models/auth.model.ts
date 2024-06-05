@@ -14,12 +14,8 @@ import { NODE_ENV } from "@auth/config";
 //     | "hashPassword"
 // >;
 
+const SALT_ROUND = 10;
 export class AuthModel extends Model<IAuthDocument> {
-    public SALT_ROUND: number;
-    constructor() {
-        super();
-        this.SALT_ROUND = 10;
-    }
     async comparePassword(
         password: string,
         hashedPassword: string
@@ -28,7 +24,7 @@ export class AuthModel extends Model<IAuthDocument> {
     }
 
     async hashPassword(password: string): Promise<string> {
-        return hash(password, this.SALT_ROUND);
+        return hash(password, SALT_ROUND);
     }
 }
 
@@ -95,8 +91,7 @@ AuthModel.init(
             beforeCreate: async (auth: AuthModel) => {
                 const hashedPassword: string = await hash(
                     auth.dataValues.password!,
-
-                    auth.SALT_ROUND
+                    SALT_ROUND
                 );
                 auth.dataValues.password = hashedPassword;
             }

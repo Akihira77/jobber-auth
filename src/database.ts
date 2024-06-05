@@ -2,7 +2,7 @@ import { MYSQL_DB } from "@auth/config";
 import { Sequelize } from "sequelize";
 import { Logger } from "winston";
 
-export let sequelize: Sequelize = new Sequelize(MYSQL_DB!, {
+export const sequelize: Sequelize = new Sequelize(MYSQL_DB!, {
     dialect: "mysql",
     logging: false,
     dialectOptions: {

@@ -1,8 +1,7 @@
 import jwt from "jsonwebtoken";
 import {
     CustomError,
-    IAuthPayload,
-    NotAuthorizedError
+    IAuthPayload
 } from "@Akihira77/jobber-shared";
 import { API_GATEWAY_URL, JWT_TOKEN, PORT } from "@auth/config";
 import { Context, Hono, Next } from "hono";
@@ -47,7 +46,7 @@ function securityMiddleware(app: Hono): void {
         })
     );
     app.use(secureHeaders());
-    app.use(csrf());
+    app.use(csrf({origin: [`${API_GATEWAY_URL}`]}));
     app.use(
         cors({
             origin: [`${API_GATEWAY_URL}`],
@@ -57,23 +56,13 @@ function securityMiddleware(app: Hono): void {
     );
 
     app.use(async (c: Context, next: Next) => {
-        if (c.req.path == "/gig-health") {
-            await next();
-            return;
-        }
-
         const authorization = c.req.header("authorization");
-        if (!authorization || authorization === "") {
-            throw new NotAuthorizedError(
-                "unauthenticated request",
-                "Auth Service"
-            );
+        if (authorization && authorization !== "") {
+            const token = authorization.split(" ")[1];
+            const payload = jwt.verify(token, JWT_TOKEN!) as IAuthPayload;
+            c.set("currentUser", payload);
         }
 
-        const token = authorization.split(" ")[1];
-        const payload = jwt.verify(token, JWT_TOKEN!) as IAuthPayload;
-
-        c.set("currentUser", payload);
         await next();
     });
 }
@@ -142,6 +131,7 @@ function authErrorHandler(app: Hono): void {
     });
 
     app.onError((err: Error, c: Context) => {
+        console.log(err);
         if (err instanceof CustomError) {
             return c.json(
                 err.serializeErrors(),

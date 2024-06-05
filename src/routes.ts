@@ -11,7 +11,8 @@ import { ElasticSearchClient } from "./elasticsearch";
 import { AuthHandler } from "./handler/auth.handler";
 import { GATEWAY_JWT_TOKEN } from "./config";
 
-const BASE_PATH = "/api/v1/auth";
+// const BASE_PATH = "/api/v1/auth";
+const BASE_PATH = "/auth";
 
 export function appRoutes(
     app: Hono,
@@ -44,8 +45,9 @@ export function appRoutes(
 
     searchRoute(api, authHndlr);
 
-    api.use(verifyGatewayRequest);
+    // api.use(verifyGatewayRequest);
     authRoute(api, authHndlr);
+    api.use(verifyGatewayRequest);
 }
 
 function searchRoute(

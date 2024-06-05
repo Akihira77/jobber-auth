@@ -22,10 +22,10 @@ export class UnauthSearchService {
     }
 
     async gigsSearch(
-        searchQuery: string,
         paginate: IPaginateProps,
         min: number,
         max: number,
+        searchQuery?: string,
         deliveryTime?: string
     ): Promise<ISearchResult> {
         const { from, size, type } = paginate;
@@ -43,7 +43,7 @@ export class UnauthSearchService {
                         "subCategories",
                         "tags"
                     ],
-                    query: `*${searchQuery}*`
+                    query: `*${searchQuery ?? ""}*`
                 }
             },
             {
@@ -52,7 +52,7 @@ export class UnauthSearchService {
                 }
             }
         ];
-        if (deliveryTime && deliveryTime !== "undefined") {
+        if (deliveryTime) {
             queryList.push({
                 match_phrase: {
                     expectedDelivery: deliveryTime

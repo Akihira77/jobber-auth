@@ -19,10 +19,10 @@ beforeAll(async () => {
 describe("search.service.ts - gigsSearch() method", () => {
     it("Should return all data match with function parameters", async () => {
         const { total, hits } = await unauthSearch.gigsSearch(
-            "web",
             { from: "0", size: 5, type: "forward" },
             0,
             100,
+            "web",
             "5 Days Delivery" // Expected Delivery
         );
 

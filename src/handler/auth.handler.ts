@@ -55,10 +55,10 @@ export class AuthHandler {
         let resultHits: ISellerGig[] = [];
 
         const gigs: ISearchResult = await this.searchService.gigsSearch(
-            query,
             params,
             min,
             max,
+            query,
             delivery_time
         );
 
@@ -83,7 +83,6 @@ export class AuthHandler {
         reqBody: any
     ): Promise<{ user: Omit<IAuthDocument, "password">; token: string }> {
         const { error, value } = signInSchema.validate(reqBody);
-
         if (error?.details) {
             throw new BadRequestError(
                 error.details[0].message,
@@ -92,8 +91,7 @@ export class AuthHandler {
         }
 
         const { username, password } = value;
-        const isValidEmail = isEmail(username);
-        const existingUser = isValidEmail
+        const existingUser = isEmail(username)
             ? await this.authService.getUserByEmail(username)
             : await this.authService.getUserByUsername(username);
 
