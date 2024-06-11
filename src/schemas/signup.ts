@@ -1,4 +1,4 @@
-import j, { ObjectSchema } from "joi";
+import j, { ObjectSchema } from "joi"
 
 export const signUpSchema: ObjectSchema = j.object().keys({
     username: j.string().min(4).max(12).required().messages({
@@ -27,4 +27,4 @@ export const signUpSchema: ObjectSchema = j.object().keys({
         "string.base": "Please add a profile picture",
         "string.empty": "Profile Picture is a required field"
     })
-});
+})

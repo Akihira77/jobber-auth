@@ -1,8 +1,8 @@
-import { sequelize } from "@auth/database";
-import { IAuthDocument } from "@Akihira77/jobber-shared";
-import { compare, hash } from "bcryptjs";
-import { DataTypes, Model } from "sequelize";
-import { NODE_ENV } from "@auth/config";
+import { sequelize } from "@auth/database"
+import { IAuthDocument } from "@Akihira77/jobber-shared"
+import { compare, hash } from "bcryptjs"
+import { DataTypes, Model } from "sequelize"
+import { NODE_ENV } from "@auth/config"
 
 // type AuthUserCreationAttributes = Optional<
 //     IAuthDocument,
@@ -14,17 +14,17 @@ import { NODE_ENV } from "@auth/config";
 //     | "hashPassword"
 // >;
 
-const SALT_ROUND = 10;
+const SALT_ROUND = 10
 export class AuthModel extends Model<IAuthDocument> {
     async comparePassword(
         password: string,
         hashedPassword: string
     ): Promise<boolean> {
-        return compare(password, hashedPassword);
+        return compare(password, hashedPassword)
     }
 
     async hashPassword(password: string): Promise<string> {
-        return hash(password, SALT_ROUND);
+        return hash(password, SALT_ROUND)
     }
 }
 
@@ -92,8 +92,8 @@ AuthModel.init(
                 const hashedPassword: string = await hash(
                     auth.dataValues.password!,
                     SALT_ROUND
-                );
-                auth.dataValues.password = hashedPassword;
+                )
+                auth.dataValues.password = hashedPassword
             }
         },
         indexes: [
@@ -111,8 +111,8 @@ AuthModel.init(
             }
         ]
     }
-);
+)
 
 if (NODE_ENV !== "test") {
-    AuthModel.sync({});
+    AuthModel.sync({})
 }

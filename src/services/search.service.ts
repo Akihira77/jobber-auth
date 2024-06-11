@@ -4,10 +4,10 @@ import {
     IQueryList,
     ISearchResult,
     ISellerGig
-} from "@Akihira77/jobber-shared";
-import { ElasticSearchClient } from "@auth/elasticsearch";
-import { SearchResponse } from "@elastic/elasticsearch/lib/api/types";
-import { Logger } from "winston";
+} from "@Akihira77/jobber-shared"
+import { ElasticSearchClient } from "@auth/elasticsearch"
+import { SearchResponse } from "@elastic/elasticsearch/lib/api/types"
+import { Logger } from "winston"
 
 export class UnauthSearchService {
     constructor(
@@ -15,10 +15,10 @@ export class UnauthSearchService {
         private logger: (moduleName: string) => Logger
     ) {}
 
-    async getGigById(index: string, id: string): Promise<ISellerGig> {
-        const gig = await this.elastic.getDocumentById(index, id);
+    async getGigById(index: string, id: string): Promise<ISellerGig | null> {
+        const gig = await this.elastic.getDocumentById(index, id)
 
-        return gig;
+        return gig
     }
 
     async gigsSearch(
@@ -28,7 +28,7 @@ export class UnauthSearchService {
         searchQuery?: string,
         deliveryTime?: string
     ): Promise<ISearchResult> {
-        const { from, size, type } = paginate;
+        const { from, size, type } = paginate
         // try it on elasticsearch dev tools
         const queryList: IQueryList[] = [
             {
@@ -51,13 +51,13 @@ export class UnauthSearchService {
                     active: true
                 }
             }
-        ];
+        ]
         if (deliveryTime) {
             queryList.push({
                 match_phrase: {
                     expectedDelivery: deliveryTime
                 }
-            } as any);
+            } as any)
         }
 
         if (!isNaN(min) && !isNaN(max)) {
@@ -68,7 +68,7 @@ export class UnauthSearchService {
                         lte: max
                     }
                 }
-            });
+            })
         }
 
         try {
@@ -87,18 +87,18 @@ export class UnauthSearchService {
                 ],
                 // startFrom for pagination
                 ...(from !== "0" && { search_after: [from] })
-            });
+            })
 
-            const total: IHitsTotal = result.hits.total as IHitsTotal;
-            const hits = result.hits.hits;
+            const total: IHitsTotal = result.hits.total as IHitsTotal
+            const hits = result.hits.hits
 
-            return { total: total.value, hits };
+            return { total: total.value, hits }
         } catch (error) {
             this.logger("services/search.service.ts - gigsSearch()").error(
                 "AuthService gigsSearch() method error:",
                 error
-            );
-            return { total: 0, hits: [] };
+            )
+            return { total: 0, hits: [] }
         }
     }
 }

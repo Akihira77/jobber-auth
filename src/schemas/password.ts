@@ -1,4 +1,4 @@
-import j, { ObjectSchema } from "joi";
+import j, { ObjectSchema } from "joi"
 
 export const emailSchema: ObjectSchema = j.object().keys({
     email: j.string().email().required().messages({
@@ -6,7 +6,7 @@ export const emailSchema: ObjectSchema = j.object().keys({
         "string.required": "Field must be valid",
         "string.email": "Field must be valid"
     })
-});
+})
 
 export const resetPasswordSchema: ObjectSchema = j.object().keys({
     password: j.string().required().min(4).max(12).messages({
@@ -19,7 +19,7 @@ export const resetPasswordSchema: ObjectSchema = j.object().keys({
         "any.only": "Passwords should match",
         "any.required": "Confirm password is a required field"
     })
-});
+})
 
 export const changePasswordSchema: ObjectSchema = j.object().keys({
     currentPassword: j.string().required().min(4).max(12).messages({
@@ -34,4 +34,4 @@ export const changePasswordSchema: ObjectSchema = j.object().keys({
         "string.max": "Invalid password",
         "string.empty": "New Password is a required field"
     })
-});
+})

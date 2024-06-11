@@ -3,17 +3,17 @@ import {
     IAuthDocument,
     firstLetterUppercase,
     lowerCase
-} from "@Akihira77/jobber-shared";
+} from "@Akihira77/jobber-shared"
 import {
     JWT_TOKEN,
     buyerServiceExchangeNamesAndRoutingKeys
-} from "@auth/config";
-import { AuthModel } from "@auth/models/auth.model";
-import { AuthQueue } from "@auth/queues/auth.queue";
-import { sign } from "jsonwebtoken";
-import { omit } from "lodash";
-import { Op } from "sequelize";
-import { Logger } from "winston";
+} from "@auth/config"
+import { AuthModel } from "@auth/models/auth.model"
+import { AuthQueue } from "@auth/queues/auth.queue"
+import { sign } from "jsonwebtoken"
+import { omit } from "lodash"
+import { Op } from "sequelize"
+import { Logger } from "winston"
 
 export class AuthService {
     constructor(
@@ -23,7 +23,7 @@ export class AuthService {
 
     async createAuthUser(data: IAuthDocument): Promise<IAuthDocument> {
         try {
-            const result = await AuthModel.create(data);
+            const result = await AuthModel.create(data)
             const messageDetails: IAuthBuyerMessageDetails = {
                 username: result.dataValues.username,
                 email: result.dataValues.email,
@@ -31,27 +31,27 @@ export class AuthService {
                 profilePicture: result.dataValues.profilePicture,
                 createdAt: result.dataValues.createdAt,
                 type: "auth"
-            };
+            }
 
-            const { buyer } = buyerServiceExchangeNamesAndRoutingKeys;
+            const { buyer } = buyerServiceExchangeNamesAndRoutingKeys
             await this.queue.publishDirectMessage(
                 buyer.exchangeName,
                 buyer.routingKey,
                 JSON.stringify(messageDetails),
                 "Buyer details sent to users service (buyer)."
-            );
+            )
 
             const userData = omit(result.dataValues, [
                 "password"
-            ]) as IAuthDocument;
+            ]) as IAuthDocument
 
-            return userData;
+            return userData
         } catch (error) {
             this.logger("services/auth.service.ts - createAuthUser()").error(
                 "AuthService createAuthUser() method error",
                 error
-            );
-            throw new Error("Unexpected error occured. Please try again.");
+            )
+            throw new Error("Unexpected error occured. Please try again.")
         }
     }
 
@@ -61,9 +61,9 @@ export class AuthService {
             attributes: {
                 exclude: ["password"]
             }
-        });
+        })
 
-        return user?.dataValues;
+        return user?.dataValues
     }
 
     async getUserByUsernameOrEmail(
@@ -84,9 +84,9 @@ export class AuthService {
             attributes: {
                 exclude: ["password"]
             }
-        });
+        })
 
-        return user?.dataValues;
+        return user?.dataValues
     }
 
     async getUserByUsername(
@@ -96,9 +96,9 @@ export class AuthService {
             where: {
                 username: firstLetterUppercase(username)
             }
-        });
+        })
 
-        return user?.dataValues;
+        return user?.dataValues
     }
 
     async getUserByEmail(email: string): Promise<IAuthDocument | undefined> {
@@ -106,9 +106,9 @@ export class AuthService {
             where: {
                 email: lowerCase(email)
             }
-        });
+        })
 
-        return user?.dataValues;
+        return user?.dataValues
     }
 
     async getAuthUserByVerificationToken(
@@ -121,9 +121,9 @@ export class AuthService {
             attributes: {
                 exclude: ["password"]
             }
-        });
+        })
 
-        return user?.dataValues;
+        return user?.dataValues
     }
 
     async getAuthUserByPasswordToken(
@@ -140,9 +140,9 @@ export class AuthService {
                     }
                 ]
             }
-        });
+        })
 
-        return user?.dataValues;
+        return user?.dataValues
     }
 
     async updateVerifyEmail(
@@ -163,13 +163,13 @@ export class AuthService {
                 {
                     where: { id }
                 }
-            );
+            )
         } catch (error) {
             this.logger("services/auth.service.ts - updateVerifyEmail()").error(
                 "AuthService updateVerifyEmail() method error",
                 error
-            );
-            throw error;
+            )
+            throw error
         }
     }
 
@@ -187,11 +187,11 @@ export class AuthService {
                 {
                     where: { id }
                 }
-            );
+            )
         } catch (error) {
             this.logger(
                 "services/auth.service.ts - updatePasswordToken()"
-            ).error("AuthService updatePasswordToken() method error", error);
+            ).error("AuthService updatePasswordToken() method error", error)
         }
     }
 
@@ -206,13 +206,13 @@ export class AuthService {
                 {
                     where: { id }
                 }
-            );
+            )
         } catch (error) {
             this.logger("services/auth.service.ts - updatePassword()").error(
                 "AuthService updatePassword() method error",
                 error
-            );
-            throw error;
+            )
+            throw error
         }
     }
 
@@ -229,6 +229,6 @@ export class AuthService {
                 issuer: "Jobber Auth",
                 expiresIn: "1d"
             }
-        );
+        )
     }
 }

@@ -1,4 +1,4 @@
-import j, { ObjectSchema } from "joi";
+import j, { ObjectSchema } from "joi"
 
 export const signInSchema: ObjectSchema = j.object().keys({
     username: j.alternatives().conditional(j.string().email(), {
@@ -20,4 +20,4 @@ export const signInSchema: ObjectSchema = j.object().keys({
         "string.max": "Invalid password",
         "string.empty": "Password is a required field"
     })
-});
+})
