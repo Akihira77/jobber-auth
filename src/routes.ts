@@ -10,9 +10,16 @@ import { UnauthSearchService } from "@auth/services/search.service"
 import { ElasticSearchClient } from "@auth/elasticsearch"
 import { AuthHandler } from "@auth/handler/auth.handler"
 import { GATEWAY_JWT_TOKEN } from "@auth/config"
-
+import { prometheus } from "@hono/prometheus"
 // const BASE_PATH = "/api/v1/auth";
 const BASE_PATH = "/auth"
+
+const { printMetrics, registerMetrics } = prometheus()
+
+function metricRoutes(app: Hono) {
+    app.use(registerMetrics)
+    app.get("/metrics", printMetrics)
+}
 
 export function appRoutes(
     app: Hono,
@@ -20,6 +27,7 @@ export function appRoutes(
     elastic: ElasticSearchClient,
     logger: (moduleName: string) => Logger
 ): void {
+    metricRoutes(app)
     app.get("auth-health", (c: Context) => {
         return c.text("Auth service is healthy and OK.", StatusCodes.OK)
     })
@@ -44,8 +52,8 @@ export function appRoutes(
     })
 
     searchRoute(api, authHndlr)
+    // api.use(verifyGatewayRequest)
 
-    // api.use(verifyGatewayRequest);
     authRoute(api, authHndlr)
     api.use(verifyGatewayRequest)
 }
@@ -97,7 +105,7 @@ function authRoute(
     api: Hono<Record<string, never>, Record<string, never>, typeof BASE_PATH>,
     authHndlr: AuthHandler
 ): void {
-    api.get("/current-user", async (c: Context) => {
+    api.get("/current-user", authOnly, async (c: Context) => {
         const currUser = c.get("currentUser")
         const user = await authHndlr.getCurrentUser.bind(authHndlr)(currUser)
 
@@ -110,7 +118,7 @@ function authRoute(
         )
     })
 
-    api.get("/refresh-token/:username", async (c: Context) => {
+    api.get("/refresh-token/:username", authOnly, async (c: Context) => {
         const username = c.req.param("username")
         const { userJWT, user } =
             await authHndlr.getRefreshToken.bind(authHndlr)(username)
@@ -125,7 +133,7 @@ function authRoute(
         )
     })
 
-    api.post("/resend-verification-email", async (c: Context) => {
+    api.post("/resend-verification-email", authOnly, async (c: Context) => {
         const { email } = await c.req.json()
         const user =
             await authHndlr.resendVerificationEmail.bind(authHndlr)(email)
@@ -141,6 +149,7 @@ function authRoute(
 
     api.post("/signup", async (c: Context) => {
         const jsonBody = await c.req.json()
+        console.log(jsonBody)
         const { user, token } = await authHndlr.signUp.bind(authHndlr)(jsonBody)
 
         return c.json(
@@ -168,8 +177,8 @@ function authRoute(
     })
 
     api.put("/verify-email", async (c: Context) => {
-        const { email } = await c.req.json()
-        const user = await authHndlr.verifyEmail.bind(authHndlr)(email)
+        const { token } = await c.req.json()
+        const user = await authHndlr.verifyEmail.bind(authHndlr)(token)
 
         return c.json(
             {
@@ -205,7 +214,7 @@ function authRoute(
         )
     })
 
-    api.put("/change-password", async (c: Context) => {
+    api.put("/change-password", authOnly, async (c: Context) => {
         const jsonBody = await c.req.json()
         const currUser = c.get("currentUser")
         authHndlr.changePassword.bind(authHndlr)(jsonBody, currUser)
@@ -240,9 +249,19 @@ async function verifyGatewayRequest(c: Context, next: Next): Promise<void> {
         c.set("gatewayToken", payload)
         await next()
     } catch (error) {
-        throw new NotAuthorizedError(
-            "Invalid request",
-            "verifyGatewayRequest() method: Request not coming from api gateway"
-        )
+        c.text("User cannot access the resource.", StatusCodes.FORBIDDEN)
+        return
     }
+}
+
+async function authOnly(c: Context, next: Next): Promise<void> {
+    const currUser = c.get("currentUser")
+    if (currUser && Object.keys(currUser).length > 0) {
+        return await next()
+    }
+
+    throw new NotAuthorizedError(
+        "User is not authenticated. Please signin first.",
+        "routes.ts - authOnly() method"
+    )
 }

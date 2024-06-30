@@ -24,7 +24,7 @@ import { Logger } from "winston"
 import { StatusCodes } from "http-status-codes"
 import { StatusCode } from "hono/utils/http-status"
 import { serve } from "@hono/node-server"
-
+import { logger } from "hono/logger"
 import { AuthQueue } from "./queues/auth.queue"
 import { ElasticSearchClient } from "./elasticsearch"
 
@@ -86,6 +86,7 @@ function securityMiddleware(app: Hono): void {
 }
 
 function standardMiddleware(app: Hono): void {
+    app.use(logger())
     app.use(compress())
     app.use(
         bodyLimit({
@@ -145,12 +146,12 @@ export async function startElasticSearch(
 
 function authErrorHandler(app: Hono): void {
     app.notFound((c) => {
-        return c.text("Route path is not found", StatusCodes.NOT_FOUND)
+        return c.text("Route path does not found", StatusCodes.NOT_FOUND)
     })
 
     app.onError((err: Error, c: Context) => {
-        console.log(err)
         if (err instanceof CustomError) {
+            console.log(err)
             return c.json(
                 err.serializeErrors(),
                 (err.statusCode as StatusCode) ??

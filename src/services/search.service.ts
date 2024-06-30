@@ -52,10 +52,14 @@ export class UnauthSearchService {
                 }
             }
         ]
-        if (deliveryTime) {
+
+        if (deliveryTime && deliveryTime !== "undefined") {
             queryList.push({
-                match_phrase: {
-                    expectedDelivery: deliveryTime
+                range: {
+                    expectedDelivery: {
+                        gte: "0 Days Delivery",
+                        lte: deliveryTime
+                    }
                 }
             } as any)
         }

@@ -369,7 +369,7 @@ export class AuthHandler {
         const { password, confirmPassword } = value
         if (password !== confirmPassword) {
             throw new BadRequestError(
-                "Passwords not match",
+                "Passwords did not match",
                 "Password resetPassword() method error"
             )
         }
