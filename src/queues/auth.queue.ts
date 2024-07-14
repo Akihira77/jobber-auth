@@ -47,6 +47,8 @@ export class AuthQueue {
             this.logger(
                 "queues/auth.producer.ts - publishDirectMessage()"
             ).info(logMessage)
+
+            await this.ch.close()
         } catch (error) {
             this.logger(
                 "queues/auth.producer.ts - publishDirectMessage()"

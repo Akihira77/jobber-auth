@@ -1,5 +1,5 @@
 import { Logger } from "winston"
-import jwt from "jsonwebtoken"
+import { createVerifier } from "fast-jwt"
 import { Context, Hono, Next } from "hono"
 import { StatusCodes } from "http-status-codes"
 import { NotAuthorizedError } from "@Akihira77/jobber-shared"
@@ -10,24 +10,15 @@ import { UnauthSearchService } from "@auth/services/search.service"
 import { ElasticSearchClient } from "@auth/elasticsearch"
 import { AuthHandler } from "@auth/handler/auth.handler"
 import { GATEWAY_JWT_TOKEN } from "@auth/config"
-import { prometheus } from "@hono/prometheus"
 // const BASE_PATH = "/api/v1/auth";
 const BASE_PATH = "/auth"
-
-const { printMetrics, registerMetrics } = prometheus()
-
-function metricRoutes(app: Hono) {
-    app.use(registerMetrics)
-    app.get("/metrics", printMetrics)
-}
 
 export function appRoutes(
     app: Hono,
     queue: AuthQueue,
     elastic: ElasticSearchClient,
-    logger: (moduleName: string) => Logger
+    logger: (moduleName?: string) => Logger
 ): void {
-    metricRoutes(app)
     app.get("auth-health", (c: Context) => {
         return c.text("Auth service is healthy and OK.", StatusCodes.OK)
     })
@@ -52,10 +43,10 @@ export function appRoutes(
     })
 
     searchRoute(api, authHndlr)
-    // api.use(verifyGatewayRequest)
+    api.use(verifyGatewayRequest)
 
     authRoute(api, authHndlr)
-    api.use(verifyGatewayRequest)
+    // api.use(verifyGatewayRequest)
 }
 
 function searchRoute(
@@ -97,6 +88,11 @@ function searchRoute(
             )
         }
 
+        // const delay = (ms: number) => {
+        //     return new Promise((resolve) => setTimeout(resolve, ms))
+        // }
+
+        // await delay(5000)
         return c.json({ message: "Single gig result", gig }, StatusCodes.OK)
     })
 }
@@ -238,13 +234,13 @@ async function verifyGatewayRequest(c: Context, next: Next): Promise<void> {
     }
 
     try {
-        const payload: { id: string; iat: number } = jwt.verify(
-            token,
-            GATEWAY_JWT_TOKEN!
-        ) as {
-            id: string
-            iat: number
-        }
+        const verifier = createVerifier({
+            key: `${GATEWAY_JWT_TOKEN}`,
+            cache: true,
+            cacheTTL: 24 * 60 * 60 * 1000, // 24 hours,
+            maxAge: 24 * 60 * 60 * 1000
+        })
+        const payload: { id: string; iat: number } = verifier(token)
 
         c.set("gatewayToken", payload)
         await next()

@@ -7,6 +7,11 @@ export const sequelize: Sequelize = new Sequelize(MYSQL_DB!, {
     logging: false,
     dialectOptions: {
         multipleStatements: true
+    },
+    pool: {
+        idle: 30 * 60 * 1000,
+        max: 20,
+        maxUses: 60 * 60 * 1000
     }
 })
 

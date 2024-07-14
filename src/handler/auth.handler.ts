@@ -52,30 +52,38 @@ export class AuthHandler {
         min: number,
         max: number
     ): Promise<{ resultHits: ISellerGig[]; total: number }> {
-        let resultHits: ISellerGig[] = []
-        const gigs: ISearchResult = await this.searchService.gigsSearch(
-            params,
-            min,
-            max,
-            query,
-            delivery_time
-        )
+        try {
+            let resultHits: ISellerGig[] = []
+            const gigs: ISearchResult = await this.searchService.gigsSearch(
+                params,
+                min,
+                max,
+                query,
+                delivery_time
+            )
 
-        for (const item of gigs.hits) {
-            resultHits.push(item._source as ISellerGig)
+            for (const item of gigs.hits) {
+                resultHits.push(item._source as ISellerGig)
+            }
+
+            if (params.type === "backward") {
+                resultHits = orderBy(resultHits, ["sortId"], ["desc"])
+            }
+
+            return { resultHits, total: gigs.total }
+        } catch (error) {
+            console.log(error)
+            return { resultHits: [], total: 0 }
         }
-
-        if (params.type === "backward") {
-            resultHits = orderBy(resultHits, ["sortId"], ["desc"])
-        }
-
-        return { resultHits, total: gigs.total }
     }
 
-    async getSingleGigById(gigId: string): Promise<ISellerGig | null> {
-        const gig = await this.searchService.getGigById("gigs", gigId)
-
-        return gig
+    getSingleGigById(gigId: string): Promise<ISellerGig | null> {
+        try {
+            return this.searchService.getGigById("gigs", gigId)
+        } catch (error) {
+            console.log(error)
+            return Promise.resolve(null)
+        }
     }
 
     async signIn(
@@ -253,7 +261,6 @@ export class AuthHandler {
     async getCurrentUser(
         currUser: IAuthPayload
     ): Promise<IAuthDocument | null> {
-        let user = null
         const existingUser = await this.authService.getAuthUserById(currUser.id)
 
         if (!existingUser) {
@@ -263,19 +270,15 @@ export class AuthHandler {
             )
         }
 
-        if (Object.keys(existingUser).length) {
-            user = existingUser
-        }
-
-        return user
+        return existingUser
     }
 
     async resendVerificationEmail(
         email: string
     ): Promise<IAuthDocument | undefined> {
-        const checkIfUserExist = await this.authService.getUserByEmail(email)
+        const existingUser = await this.authService.getUserByEmail(email)
 
-        if (!checkIfUserExist) {
+        if (!existingUser) {
             throw new NotFoundError(
                 "Email is invalid",
                 "currentUser resendVerificationEmail() method error"
@@ -289,7 +292,7 @@ export class AuthHandler {
         const verificationLink = `${CLIENT_URL}/confirm_email?v_token=${randomCharacters}`
 
         await this.authService.updateVerifyEmail(
-            checkIfUserExist.id!,
+            existingUser.id!,
             0,
             randomCharacters
         )
@@ -310,7 +313,7 @@ export class AuthHandler {
         )
 
         const updatedUser = await this.authService.getAuthUserById(
-            checkIfUserExist.id!
+            existingUser.id!
         )
 
         return updatedUser

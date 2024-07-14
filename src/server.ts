@@ -1,4 +1,4 @@
-import jwt from "jsonwebtoken"
+import { createVerifier } from "fast-jwt"
 import {
     CustomError,
     IAuthPayload,
@@ -8,6 +8,7 @@ import {
     API_GATEWAY_URL,
     ELASTIC_SEARCH_URL,
     JWT_TOKEN,
+    NODE_ENV,
     PORT
 } from "@auth/config"
 import { Context, Hono, Next } from "hono"
@@ -27,14 +28,28 @@ import { serve } from "@hono/node-server"
 import { logger } from "hono/logger"
 import { AuthQueue } from "./queues/auth.queue"
 import { ElasticSearchClient } from "./elasticsearch"
+import { prometheus } from "@hono/prometheus"
 
-const LIMIT_TIMEOUT = 2 * 1000 // 2s
+const { printMetrics, registerMetrics } = prometheus({
+    collectDefaultMetrics: true
+})
 
-export async function setupHono(app: Hono): Promise<Hono> {
-    const logger = (location: string) =>
-        winstonLogger(`${ELASTIC_SEARCH_URL}`, location ?? "server.ts", "debug")
-    const queue = await startQueues(logger)
-    const elastic = await startElasticSearch(logger)
+const LIMIT_TIMEOUT = 3 * 1000 // 3s
+
+export function setupHono(
+    app: Hono,
+    logger?: (location?: string) => Logger
+): Hono {
+    if (!logger) {
+        logger = (location?: string) =>
+            winstonLogger(
+                `${ELASTIC_SEARCH_URL}`,
+                location ?? "server.ts",
+                "debug"
+            )
+    }
+    const queue = startQueues(logger)
+    const elastic = startElasticSearch(logger)
     authErrorHandler(app)
     securityMiddleware(app)
     standardMiddleware(app)
@@ -43,11 +58,11 @@ export async function setupHono(app: Hono): Promise<Hono> {
     return app
 }
 
-export async function start(
+export function start(
     app: Hono,
-    logger: (moduleName: string) => Logger
-): Promise<void> {
-    app = await setupHono(app)
+    logger: (moduleName?: string) => Logger
+): void {
+    app = setupHono(app, logger)
     startServer(app, logger)
 }
 
@@ -76,8 +91,13 @@ function securityMiddleware(app: Hono): void {
     app.use(async (c: Context, next: Next) => {
         const authorization = c.req.header("authorization")
         if (authorization && authorization !== "") {
-            const token = authorization.split(" ")[1]
-            const payload = jwt.verify(token, JWT_TOKEN!) as IAuthPayload
+            const authBearer = authorization.split(" ")[1]
+            const verifier = createVerifier({
+                key: `${JWT_TOKEN}`,
+                cache: true,
+                cacheTTL: 30 * 60 * 1000
+            })
+            const payload = verifier(authBearer) as IAuthPayload
             c.set("currentUser", payload)
         }
 
@@ -86,7 +106,12 @@ function securityMiddleware(app: Hono): void {
 }
 
 function standardMiddleware(app: Hono): void {
-    app.use(logger())
+    if (NODE_ENV !== "production") {
+        app.use(logger())
+    }
+    app.use("*", registerMetrics)
+    app.get("/metrics", printMetrics)
+
     app.use(compress())
     app.use(
         bodyLimit({
@@ -121,24 +146,22 @@ function routesMiddleware(
     app: Hono,
     queue: AuthQueue,
     elastic: ElasticSearchClient,
-    logger: (moduleName: string) => Logger
+    logger: (moduleName?: string) => Logger
 ): void {
     appRoutes(app, queue, elastic, logger)
 }
 
-async function startQueues(
-    logger: (moduleName: string) => Logger
-): Promise<AuthQueue> {
+function startQueues(logger: (moduleName: string) => Logger): AuthQueue {
     const queue = new AuthQueue(null, logger)
-    await queue.createConnection()
+    queue.createConnection()
     return queue
 }
 
-export async function startElasticSearch(
+export function startElasticSearch(
     logger: (moduleName: string) => Logger
-): Promise<ElasticSearchClient> {
+): ElasticSearchClient {
     const elastic = new ElasticSearchClient(logger)
-    await elastic.checkConnection()
+    elastic.checkConnection()
     elastic.createIndex("gigs")
 
     return elastic
@@ -168,7 +191,10 @@ function authErrorHandler(app: Hono): void {
     })
 }
 
-function startServer(hono: Hono, logger: (moduleName: string) => Logger): void {
+function startServer(
+    hono: Hono,
+    logger: (moduleName?: string) => Logger
+): void {
     try {
         logger("server.ts - startServer()").info(
             `AuthService has started with pid ${process.pid}`

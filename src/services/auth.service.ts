@@ -10,7 +10,7 @@ import {
 } from "@auth/config"
 import { AuthModel } from "@auth/models/auth.model"
 import { AuthQueue } from "@auth/queues/auth.queue"
-import { sign } from "jsonwebtoken"
+import { createSigner } from "fast-jwt"
 import { omit } from "lodash"
 import { Op } from "sequelize"
 import { Logger } from "winston"
@@ -217,18 +217,17 @@ export class AuthService {
     }
 
     signToken(id: number, email: string, username: string): string {
-        return sign(
-            {
-                id,
-                email,
-                username
-            },
-            JWT_TOKEN!,
-            {
-                algorithm: "HS512",
-                issuer: "Jobber Auth",
-                expiresIn: "1d"
-            }
-        )
+        const signer = createSigner({
+            key: `${JWT_TOKEN}`,
+            algorithm: "HS512",
+            expiresIn: "1d",
+            iss: "Jobber Auth"
+        })
+
+        return signer({
+            id,
+            email,
+            username
+        })
     }
 }
