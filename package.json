@@ -7,7 +7,7 @@
     "start:dev": "NODE_ENV=development&&nodemon -r tsconfig-paths/register src/app.ts --trace-warnings | pino-pretty -c",
     "start:prod": "NODE_ENV=production&&pm2 start ./build/src/app.js -i 1 --name Auth_Service --trace | pino-pretty -c",
     "dev": "NODE_ENV=production&&npm run build&&node -auth --trace-warnings ./build/src/app.js",
-    "start": "NODE_ENV=production node --trace-warnings build/src/app.js -auth",
+    "start":"NODE_ENV=production node build/src/app.js -auth",
     "start:pm": "NODE_ENV=production&&pm2 start ./build/src/app.js -i max --name Auth_Service --trace | pino-pretty -c",
     "stop": "pm2 stop all",
     "delete": "pm2 delete all",
